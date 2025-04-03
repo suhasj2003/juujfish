@@ -35,13 +35,13 @@ namespace Juujfish {
         constexpr Direction UP_RIGHT = C == WHITE ? NORTH_EAST : SOUTH_WEST;
         constexpr Direction UP_LEFT = C == WHITE ? NORTH_WEST : SOUTH_EAST;
 
-        const BitBoard enemies = Gt == EVASIONS ? pos.get_checkers() : pos.pieces(C == WHITE ? BLACK : WHITE);
+        const BitBoard enemies = Gt == EVASIONS ? pos.get_checkers() : pos.pieces(~C);
         const BitBoard empty_squares = ~pos.pieces();
 
 
         if constexpr (Gt != CAPTURES) {
-            BitBoard push_1 = shift(pawns_not_on_7, UP) & empty_squares;
-            BitBoard push_2 = shift(push_1 & (C == WHITE ? RANK_3_BB : RANK_6_BB), UP) & empty_squares;
+            BitBoard push_1 = shift<UP>(pawns_not_on_7) & empty_squares;
+            BitBoard push_2 = shift<UP>(push_1 & (C == WHITE ? RANK_3_BB : RANK_6_BB)) & empty_squares;
 
             if constexpr (Gt == EVASIONS) {
                 push_1 &= target;
@@ -62,8 +62,8 @@ namespace Juujfish {
         }
 
         if (Gt == CAPTURES || Gt == EVASIONS || Gt == NON_EVASIONS) {
-            BitBoard right_attack = shift(pawns_not_on_7, UP_RIGHT) & enemies;
-            BitBoard left_attack = shift(pawns_not_on_7, UP_LEFT) & enemies;
+            BitBoard right_attack = shift<UP_RIGHT>(pawns_not_on_7) & enemies;
+            BitBoard left_attack = shift<UP_LEFT>(pawns_not_on_7) & enemies;
 
             while (right_attack) {
                 Square to = lsb(pop_lsb(right_attack));
@@ -79,7 +79,7 @@ namespace Juujfish {
                 assert(rank_of(pos.get_ep_square()) == (C == WHITE ? RANK_6 : RANK_3));
 
                 Square to = pos.get_ep_square();
-                BitBoard ep_pawns = pawn_attacks_bb(to, (C == WHITE ? BLACK : WHITE)) & pawns_not_on_7;
+                BitBoard ep_pawns = pawn_attacks_bb(to, ~C) & pawns_not_on_7;
 
                 while (ep_pawns) {
                     Square from = lsb(pop_lsb(ep_pawns));
@@ -89,9 +89,9 @@ namespace Juujfish {
         }
 
         if (pawns_on_7 != 0) {
-            BitBoard right_attack = shift(pawns_on_7, UP_RIGHT) & enemies;
-            BitBoard left_attack = shift(pawns_on_7, UP_LEFT) & enemies;
-            BitBoard up_push = shift(pawns_on_7, UP) & empty_squares;
+            BitBoard right_attack = shift<UP_RIGHT>(pawns_on_7) & enemies;
+            BitBoard left_attack = shift<UP_LEFT>(pawns_on_7) & enemies;
+            BitBoard up_push = shift<UP>(pawns_on_7) & empty_squares;
 
             if constexpr (Gt == EVASIONS)
                 up_push &= target;
@@ -132,7 +132,7 @@ namespace Juujfish {
 
     template<Color Us, GenType Gt>
     GradedMove* generate_moves(Position &pos, GradedMove *move_list) {
-        Color them = (Us == WHITE ? BLACK : WHITE);
+        Color them = ~Us;
 
         Square king_sq = lsb(pos.pieces(Us, KING));
         BitBoard target = 0;
@@ -199,5 +199,25 @@ namespace Juujfish {
     template GradedMove* generate<QUIETS>(Position&, GradedMove*);
     template GradedMove* generate<EVASIONS>(Position&, GradedMove*);
     template GradedMove* generate<NON_EVASIONS>(Position&, GradedMove*);
+
+    template<>
+    GradedMove* generate<LEGAL>(Position &pos, GradedMove *move_list) {
+        Color us = pos.get_side_to_move();
+
+        Square king_sq = lsb(pos.pieces(us, KING));
+        BitBoard pinned = pos.get_blockers(us) & pos.pieces(us);
+
+        GradedMove *curr = move_list;
+
+        move_list = pos.is_in_check() ? generate<EVASIONS>(pos, move_list) : generate<NON_EVASIONS>(pos, move_list);
+
+        while (curr != move_list)
+            if (((curr->from_sq() & pinned) || (curr->from_sq() == king_sq) || (curr->type_of() == ENPASSANT)) && !pos.legal(*curr))
+                *curr = *(--move_list);
+            else
+                curr++;
+
+        return move_list;
+    }
 
 } // namespace Juujfish

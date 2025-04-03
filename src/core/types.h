@@ -83,6 +83,8 @@
             COLOR_NB
         };
 
+        inline Color operator~(Color c) {return Color(c ^ 1);}
+
         enum CastlingRights {
             NO_CASTLING,
             WHITE_OO    = 1,
@@ -123,7 +125,7 @@
         }
 
         constexpr Value PAWN_VALUE      = 100;
-        constexpr Value KNIGHT_VALUE    = 310;
+        constexpr Value KNIGHT_VALUE    = 290;
         constexpr Value BISHOP_VALUE    = 320;
         constexpr Value ROOK_VALUE      = 500;
         constexpr Value QUEEN_VALUE     = 900;
@@ -131,7 +133,7 @@
 
         constexpr Value VALUE_ZERO = 0;
         constexpr Value VALUE_DRAW = 0;
-        constexpr Value VALUE_MATE = 32000;
+        constexpr Value VALUE_MATE = 30000;
         constexpr Value VALUE_INFINITE = 32001;
 
         enum PieceType {
@@ -173,6 +175,8 @@
                 constexpr Square to_sq() const { return Square(data & 0x3F); }
                 constexpr PieceType promotion_type() const { return PieceType((data >> 12 & 0x3) + KNIGHT); }
                 constexpr MoveType type_of() const { return MoveType(data & 0xC000); }
+
+                constexpr bool is_nullmove() const { return data == 0; }
 
                 constexpr bool operator==(const Move& m) const { return data == m.data; }
                 constexpr bool operator!=(const Move& m) const { return data != m.data; }

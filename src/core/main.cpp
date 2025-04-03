@@ -5,6 +5,8 @@
 #include "bitboard.h"
 #include "position.h"
 #include "movegen.h"
+#include "search.h"
+#include "evaluation.h"
 
 using namespace Juujfish;
 
@@ -50,36 +52,35 @@ int squareIndex(const std::string& pos) {
 }
 
 // Converts move string to a Move object
-Move parseMove(const std::string& moveStr) {
-    if (moveStr.length() < 4 || moveStr.length() > 5) {
-        throw std::invalid_argument("Invalid move string length");
-    }
+// Move parseMove(const std::string& moveStr) {
+//     if (moveStr.length() < 4 || moveStr.length() > 5) {
+//         return Move(0);
+//     }
 
-    int from = squareIndex(moveStr.substr(0, 2));
-    int to = squareIndex(moveStr.substr(2, 2));
-    MoveType moveType = NORMAL;
-    PieceType promotionPiece = KNIGHT;
+//     int from = squareIndex(moveStr.substr(0, 2));
+//     int to = squareIndex(moveStr.substr(2, 2));
+//     PieceType promotionPiece = KNIGHT;
 
-    if (moveStr.length() == 5) {
-        switch (moveStr[4]) {
-            case 'n': promotionPiece = KNIGHT; break;
-            case 'b': promotionPiece = BISHOP; break;
-            case 'r': promotionPiece = ROOK; break;
-            case 'q': promotionPiece = QUEEN; break;
-            default: throw std::invalid_argument("Invalid promotion piece");
-        }
-        return Move::make<PROMOTION>(Square(to), Square(from), promotionPiece);
-    }
+//     if (moveStr.length() == 5) {
+//         switch (moveStr[4]) {
+//             case 'n': promotionPiece = KNIGHT; break;
+//             case 'b': promotionPiece = BISHOP; break;
+//             case 'r': promotionPiece = ROOK; break;
+//             case 'q': promotionPiece = QUEEN; break;
+//             default: return Move(0);
+//         }
+//         return Move::make<PROMOTION>(Square(to), Square(from), promotionPiece);
+//     }
 
-    // Special case detection (castling, en passant) would need board state
-    if ((from == 4 && to == 6) || (from == 60 && to == 62)) {
-        Move::make<CASTLING>(Square(to), Square(from));
-    } else if ((from == 4 && to == 2) || (from == 60 && to == 58)) {
-        Move::make<CASTLING>(Square(to), Square(from));
-    }
+//     // Special case detection (castling, en passant) would need board state
+//     if ((from == 4 && to == 6) || (from == 60 && to == 62)) {
+//         Move::make<CASTLING>(Square(to), Square(from));
+//     } else if ((from == 4 && to == 2) || (from == 60 && to == 58)) {
+//         Move::make<CASTLING>(Square(to), Square(from));
+//     }
 
-    return Move::make<NORMAL>(Square(to), Square(from));
-}
+//     return Move::make<NORMAL>(Square(to), Square(from));
+// }
 
 std::string moveToString(Move m) {
     std::string moveStr;
@@ -113,6 +114,24 @@ std::string moveToString(Move m) {
     }
 
     return moveStr;
+}
+
+Move parseMove(Position &pos, const std::string &moveStr) {
+    if (moveStr.length() < 2) {
+        return Move(0); // Invalid move
+    }
+
+    MoveList<LEGAL> legalMoves(pos);
+
+    for (auto m : legalMoves) {
+        std::string legalMoveStr = moveToString(m);
+
+        if (legalMoveStr == moveStr) {
+            return m; // Found a matching legal move
+        }
+    }
+
+    return Move(0); // No matching move found
 }
 
 uint64_t perft(Position &pos, int depth, int d) {
@@ -168,18 +187,78 @@ uint64_t perft(Position &pos, int depth, int d) {
 }
 
 
-int main(int argc, char const *argv[])
+int main()
 {
     BitBoards::init();
     Position::init();
 
     auto states = new std::deque<StateInfo>(1);
 
-
     Position p;
     p.set("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", &states->back());
 
-    
+    bool mate_or_draw = false;
+    Value score = VALUE_INFINITE;
+
+    std::cout << pretty(p) << std::endl;
+
+    srand(time(NULL));
+    Color ENGINE = Color(rand() & 1);
+    // Color ENGINE = BLACK;
+
+    while (!mate_or_draw) {
+        std::string input;
+
+        if (p.get_side_to_move() == ENGINE) {
+            Worker w;
+            w.init();
+
+            score = w.search<true>(p, 5);
+            Move m = Move(w.get_best_move().raw());
+
+            states->emplace_back();
+
+            p.make_move(m, &states->back(), p.gives_check(m));
+
+            std::cout << std::endl;
+            std::cout << pretty(p) << std::endl;
+
+            if (score == VALUE_DRAW || score == -(VALUE_MATE + 5) || score == (VALUE_MATE - 4))
+                mate_or_draw = true;
+
+        } else {
+            std::cout << "Enter move: " << std::endl;
+            std::cin >> input;
+
+            Move m = parseMove(p, input);
+
+            if (m.is_nullmove()) {
+                std::cout << "Move is not valid. Try again." << "\n" << std::endl;
+                continue;
+            } else if (!p.legal(m)) {
+                std::cout << "Move is not legal. Try again." << std::endl;
+                continue;
+            }
+        
+            states->emplace_back();
+
+            p.make_move(m, &states->back(), p.gives_check(m));
+
+            std::cout << std::endl;
+            std::cout << pretty(p) << std::endl;
+        }
+    }
+
+    std::cout << std::endl;
+    if (score == VALUE_DRAW) {
+        std::cout << "DRAW" << std::endl;
+    } else if (score == -(VALUE_MATE + 5) || score == (VALUE_MATE - 4)) {
+        std::cout << "CHECKMATE!!!" << std::endl;
+    } else {
+        std::cerr << "Error: Neither checkmate or draw." << std::endl;
+    }
+
+
     // std::cout << pretty(p) << std::endl;
     // std::cout << pretty(p.get_blockers(WHITE)) << std::endl;
     // std::cout << pretty(p.get_pinners(BLACK)) << std::endl;
@@ -204,20 +283,22 @@ int main(int argc, char const *argv[])
     // std::cin >> fen;
 
 
-    while (true) {
-        std::cout << "Enter depth: ";
+    // while (true) {
+    //     std::cout << "Enter depth: ";
 
-        int depth;
-        std::cin >> depth;
+    //     int depth;
+    //     std::cin >> depth;
+    //     std::cout << std::endl;
 
-        auto start = std::chrono::high_resolution_clock::now();
-        uint64_t total_positions = perft(p, depth, depth);
-        auto end = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    //     auto start = std::chrono::high_resolution_clock::now();
+    //     uint64_t total_positions = perft(p, depth, depth);
+    //     auto end = std::chrono::high_resolution_clock::now();
+    //     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
     
-        std::cout << "Perft execution time: " << duration.count() << " milliseconds" << std::endl;
-        std::cout << std::endl << "Number of positions at depth: " << depth << ": " << total_positions << std::endl << std::endl;
-    }
+    //     std::cout << std::endl << "Perft execution time: " << duration.count() << " milliseconds" << std::endl;
+    //     std::cout << std::endl << "Number of positions at depth: " << depth << ": " << total_positions << std::endl;
+    //     std::cout << std::endl << "MNPs: " << (total_positions / duration.count()) / 1000 << std::endl << std::endl;
+    // }
 
     // int depth = 7;
 

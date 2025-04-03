@@ -107,17 +107,18 @@
 
         inline int manhattan_distance(Square s1, Square s2) {return abs(file_of(s1) - file_of(s2)) + abs(rank_of(s1) - rank_of(s2));}
 
-        constexpr BitBoard shift(BitBoard b, Direction d) {
-            return d == NORTH         ? (b & ~RANK_8_BB) << 8
-                 : d == SOUTH         ? (b & ~RANK_1_BB) >> 8
-                 : d == NORTH + NORTH ? (b & ~(RANK_7_BB | RANK_8_BB)) << 16
-                 : d == SOUTH + SOUTH ? (b & ~(RANK_1_BB | RANK_2_BB)) >> 16
-                 : d == EAST          ? (b & ~FILE_H_BB) << 1
-                 : d == WEST          ? (b & ~FILE_A_BB) >> 1
-                 : d == NORTH_EAST    ? (b & ~(FILE_H_BB | RANK_8_BB)) << 9
-                 : d == NORTH_WEST    ? (b & ~(FILE_A_BB | RANK_8_BB)) << 7
-                 : d == SOUTH_EAST    ? (b & ~(FILE_H_BB | RANK_1_BB)) >> 7
-                 : d == SOUTH_WEST    ? (b & ~(FILE_A_BB | RANK_1_BB)) >> 9
+        template<Direction D>
+        constexpr BitBoard shift(BitBoard b) {
+            return D == NORTH         ? (b & ~RANK_8_BB) << 8
+                 : D == SOUTH         ? (b & ~RANK_1_BB) >> 8
+                 : D == NORTH + NORTH ? (b & ~(RANK_7_BB | RANK_8_BB)) << 16
+                 : D == SOUTH + SOUTH ? (b & ~(RANK_1_BB | RANK_2_BB)) >> 16
+                 : D == EAST          ? (b & ~FILE_H_BB) << 1
+                 : D == WEST          ? (b & ~FILE_A_BB) >> 1
+                 : D == NORTH_EAST    ? (b & ~(FILE_H_BB | RANK_8_BB)) << 9
+                 : D == NORTH_WEST    ? (b & ~(FILE_A_BB | RANK_8_BB)) << 7
+                 : D == SOUTH_EAST    ? (b & ~(FILE_H_BB | RANK_1_BB)) >> 7
+                 : D == SOUTH_WEST    ? (b & ~(FILE_A_BB | RANK_1_BB)) >> 9
                                       : 0;
         }
 
@@ -170,9 +171,9 @@
 
         // Pawn Moves lookup:
         inline BitBoard pawn_pushes_bb(BitBoard b, Color c) {
-            BitBoard pushesbb = c == WHITE ? shift(b, NORTH) : shift(b, SOUTH);
+            BitBoard pushesbb = c == WHITE ? shift<NORTH>(b) : shift<SOUTH>(b);
             if (rank_of(lsb(b)) == (c == WHITE ? RANK_2 : RANK_7))
-                pushesbb |= c == WHITE ? shift(shift(b, NORTH), NORTH) : shift(shift(b, SOUTH), SOUTH);
+                pushesbb |= c == WHITE ? shift<NORTH + NORTH>(b) : shift<SOUTH + SOUTH>(b);
             return pushesbb;
         }
 
@@ -182,8 +183,8 @@
         }
 
         inline BitBoard pawn_attacks_bb(BitBoard b, Color c) {
-            return c == WHITE ? shift(b, NORTH_EAST) | shift(b, NORTH_WEST)
-                              : shift(b, SOUTH_EAST) | shift(b, SOUTH_WEST);
+            return c == WHITE ? shift<NORTH_EAST>(b) | shift<NORTH_WEST>(b)
+                              : shift<SOUTH_EAST>(b) | shift<SOUTH_WEST>(b);
         }
 
         inline BitBoard pawn_attacks_bb(Square s, Color c) {

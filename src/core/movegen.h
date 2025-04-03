@@ -46,7 +46,7 @@
                 const GradedMove *begin() { return move_list; }
                 const GradedMove *end() { return last; }
                 size_t      size() { return last - move_list; }
-                bool        contains(Move m) { return std::find(begin(), end()) != end(); } 
+                bool        contains(Move m) { return std::find(begin(), end(), m) != end(); } 
 
             private:
                 GradedMove move_list[MAX_MOVES], *last;

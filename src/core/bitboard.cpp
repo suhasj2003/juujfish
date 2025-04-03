@@ -93,7 +93,7 @@ namespace Juujfish {
 
     bool try_magic(Magic& magic, std::vector<BitBoard>& blocker_bitboards, std::vector<BitBoard>& attacks_vec) {
         std::fill(magic.attacks, magic.attacks + (1 << magic.shift), 0);
-        for (int idx = 0; idx < blocker_bitboards.size(); ++idx) {
+        for (size_t idx = 0; idx < blocker_bitboards.size(); ++idx) {
             BitBoard bb = blocker_bitboards[idx];
             BitBoard attack = attacks_vec[idx];
             unsigned index = magic.index(bb);
@@ -163,4 +163,4 @@ namespace Juujfish {
 
         return blocker_bitboards;
     }
-}
+} // namespace Juujfish

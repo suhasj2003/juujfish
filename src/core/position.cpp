@@ -153,7 +153,7 @@ namespace Juujfish {
 
     bool Position::legal(Move m) const {
         Color us = get_side_to_move();
-        Color them = (us == WHITE ? BLACK : WHITE);
+        Color them = ~us;
 
         Square from = m.from_sq();
         Square to = m.to_sq();
@@ -198,7 +198,7 @@ namespace Juujfish {
         PieceType pt    = type_of(p);
 
         Color us    = st->side_to_move;
-        Color them  = us == WHITE ? BLACK : WHITE;
+        Color them  = ~us;
 
         Square king_sq = lsb(pieces(them, KING));
 
@@ -282,7 +282,7 @@ namespace Juujfish {
                 std::cerr << "Error: Invalid castling rights" << std::endl;
                 return false;
         }
-        return king_path & all_attacks(st->side_to_move == WHITE ? BLACK : WHITE );
+        return king_path & all_attacks(~st->side_to_move);
     }
 
     BitBoard Position::all_attacks(Color c) const {
@@ -300,8 +300,7 @@ namespace Juujfish {
     }
 
     bool Position::sq_is_attacked(Color c, Square s, BitBoard occupied) const {
-        Color us = c;
-        Color them = c == WHITE ? BLACK : WHITE;
+        Color them = ~c;
 
         BitBoard target_sq = square_to_bb(s);
 
@@ -340,7 +339,7 @@ namespace Juujfish {
 
     void Position::update_checkers() {
         Color us = st->side_to_move;
-        Color them = us == WHITE ? BLACK : WHITE;
+        Color them = ~us;
 
         Square king_sq = lsb(pieces(us, KING));
 
@@ -352,7 +351,7 @@ namespace Juujfish {
     }
 
     void Position::set_check_squares() {
-        Color them = st->side_to_move == WHITE ? BLACK : WHITE;
+        Color them = ~st->side_to_move;
 
         Square king_sq = lsb(pieces(them, KING));
 
@@ -369,7 +368,7 @@ namespace Juujfish {
     void Position::update_pinners_blockers() {
         for (Color c : {WHITE, BLACK}) {
             Color us = c;
-            Color them = (us == WHITE) ? BLACK : WHITE;
+            Color them = ~us;
 
             BitBoard blockers_bb = 0;
             BitBoard pinners_bb = 0;
@@ -426,7 +425,7 @@ namespace Juujfish {
         Piece p = piece_at(from);
         PieceType pt = type_of(p);
         Color us = st->side_to_move;
-        Color them = (us == WHITE) ? BLACK : WHITE;
+        Color them = ~us;
 
         Piece capture_piece = NO_PIECE;
 
@@ -485,6 +484,8 @@ namespace Juujfish {
         }
 
         // 2. Update State
+        std::memset(new_st, 0, sizeof(StateInfo));
+
         StateInfo *old_st = get_state();
 
         copy_state(new_st, old_st);
@@ -537,7 +538,8 @@ namespace Juujfish {
                     rto = SQ_D8; rfrom = SQ_A8;
                     break;
                 default:
-                    break;
+                    std::cerr << "Error: Invalid Castling Rights." << std::endl; 
+                    return;
             }
 
             st->zobrist_key ^= Zobrist::psq[piece_of(us, KING)][from];
@@ -557,7 +559,6 @@ namespace Juujfish {
             st->castling_rights &= ~(us & ANY_CASTLING);
             
         } else if (move_type == ENPASSANT) {
-            File ep_file = file_of(to);
             Square capture_sq = Square(to + ((us == WHITE) ? -8 : 8));
 
             st->fifty_move_counter = 0;
@@ -692,25 +693,6 @@ namespace Juujfish {
 
             st->zobrist_key ^= Zobrist::psq[p][from];
             st->zobrist_key ^= Zobrist::psq[p][to];
-
-            // switch (pt) {
-            //     case PAWN:
-            //         st->pawn_key ^= Zobrist::psq[capture_piece][to];
-            //     case KNIGHT:
-            //     case BISHOP:
-            //         st->minor_piece_key ^= Zobrist::psq[capture_piece][to];
-            //         break;
-            //     case ROOK:
-            //     case QUEEN:
-            //         st->major_piece_key ^= Zobrist::psq[capture_piece][to];
-            //         break;
-            //     case KING:
-            //         std::cerr << "Error: King cannot be captured" << std::endl;
-            //         return;
-            //     default:
-            //         std::cerr << "Error: Normal piece type is not defined." << std::endl;
-            //         return;
-            // }
         }
 
         st->zobrist_key ^= Zobrist::black_to_move;
@@ -746,7 +728,7 @@ namespace Juujfish {
         Piece p = piece_at(from);
         Piece capture_p = piece_at(capture_sq);
         assert(type_of(p) == PAWN && color_of(p) == c);
-        assert(type_of(capture_p) == PAWN && color_of(capture_p) == (c == WHITE ? BLACK : WHITE));
+        assert(type_of(capture_p) == PAWN && color_of(capture_p) == (~c));
 
         assert(capture_sq == Square(to + (c == WHITE ? -8 : 8)));
 
@@ -773,7 +755,7 @@ namespace Juujfish {
 
     void Position::unmake_move() {
         Color us = st->side_to_move;
-        Color them = st->side_to_move == WHITE ? BLACK : WHITE;
+        Color them = ~us;
 
         Move prev_m = st->previous_move;
         Square to = prev_m.to_sq();
@@ -863,7 +845,7 @@ namespace Juujfish {
         set_piece(c, PAWN, from);
         remove_piece(to);
 
-        set_piece(c == WHITE ? BLACK : WHITE, PAWN, capture_sq);
+        set_piece(~c, PAWN, capture_sq);
     }
 
     void Position::undo_promotion(Color c, Square to, Square from) {

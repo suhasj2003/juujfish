@@ -94,6 +94,8 @@
                 bool legal(Move m) const;
                 bool gives_check(Move m) const;
 
+                bool is_capture(Move m) const;
+
                 void make_move(Move m, StateInfo *new_st, bool gives_check);
                 void do_castling(Color c, Square to, Square from, Square rto, Square rfrom);
                 void do_en_passant(Color c, Square to, Square from, Square capture_sq);
@@ -107,14 +109,17 @@
                 BitBoard all_attacks(Color c) const;
                 bool sq_is_attacked(Color c, Square s, BitBoard occupied) const;
                 BitBoard attacked_by(Color c, Square s) const;
+                
+                template<PieceType Pt>
+                BitBoard attacks_by(Color c) const;
 
                 void set_check_squares();
 
                 void update_checkers();
                 void update_pinners_blockers();
 
-                bool is_draw();
-                bool is_repetition(int ply);
+                bool is_draw() const;
+                bool is_repetition() const;
                 bool update_repetition();
 
             private:
@@ -139,24 +144,6 @@
                 case 'q': return B_QUEEN;
                 case 'k': return B_KING;
                 default:  return NO_PIECE;
-            }
-        }
-
-        inline char piece_to_char(Piece p) {
-            switch (p) {
-                case W_PAWN:    return 'P';
-                case W_KNIGHT:  return 'N';
-                case W_BISHOP:  return 'B';
-                case W_ROOK:    return 'R';
-                case W_QUEEN:   return 'Q';
-                case W_KING:    return 'K';
-                case B_PAWN:    return 'p';
-                case B_KNIGHT:  return 'n';
-                case B_BISHOP:  return 'b';
-                case B_ROOK:    return 'r';
-                case B_QUEEN:   return 'q';
-                case B_KING:    return 'k';
-                default:        return '.';
             }
         }
 
@@ -228,7 +215,6 @@
                 return true;
             } else return false;
         }
-
     } // namespace Juujfish
 
 #endif // #ifndef POSITION_H

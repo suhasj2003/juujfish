@@ -141,6 +141,8 @@
             PIECE_TYPE_NB
         };
 
+        constexpr Value PieceValue[] = {PAWN_VALUE, KNIGHT_VALUE, BISHOP_VALUE, ROOK_VALUE, QUEEN_VALUE, KING_VALUE};
+
         enum Piece {
             NO_PIECE = -1,
             W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,
@@ -171,6 +173,8 @@
                         return Move(Mt + ((pt - KNIGHT) << 12) + (from << 6) + to);
                 }
 
+                static constexpr Move null_move() {return Move(0);};
+
                 constexpr Square from_sq() const { return Square((data >> 6) & 0x3F); }
                 constexpr Square to_sq() const { return Square(data & 0x3F); }
                 constexpr PieceType promotion_type() const { return PieceType((data >> 12 & 0x3) + KNIGHT); }
@@ -198,6 +202,8 @@
             std::uniform_int_distribution<uint64_t> dist(0, UINT64_MAX);
             return dist(gen);
         }
+
+        const int MAX_PLY = 128; // max depth of search
 
     } // namespace Juujfish
 

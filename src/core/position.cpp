@@ -237,6 +237,24 @@ namespace Juujfish {
         }
     }
 
+    bool Position::is_capture(Move m) const {
+        Square to = m.to_sq();
+        PieceType promo_type = m.promotion_type();
+        MoveType mt = m.type_of();
+
+        Color cpc = color_of(piece_at(to));
+
+        if (mt == ENPASSANT) {
+            return true;
+        } else if (mt == CASTLING) {
+            return false;
+        } else if (mt == PROMOTION) {
+            return (promo_type == QUEEN);
+        } else {
+            return piece_at(to) != NO_PIECE && cpc != get_side_to_move();
+        }
+    }
+
     bool Position::castling_blocked(CastlingRights cr) const {
         if (cr == NO_CASTLING) return false;
         BitBoard path;
@@ -263,26 +281,31 @@ namespace Juujfish {
 
     bool Position::castling_attacked(CastlingRights cr) const {
         if (cr == NO_CASTLING) return false;
-        BitBoard king_path = 0;
+        BitBoard occ = pieces();
+        
+        Color us = st->side_to_move;
 
         switch (cr) {
             case WHITE_OO:
-                king_path = square_to_bb(SQ_E1) | square_to_bb(SQ_F1) | square_to_bb(SQ_G1);
-                break;
+                return ( sq_is_attacked(us, SQ_E1, occ) || 
+                        sq_is_attacked(us, SQ_F1, occ) || 
+                        sq_is_attacked(us, SQ_G1, occ) );
             case WHITE_OOO:
-                king_path = square_to_bb(SQ_C1) | square_to_bb(SQ_D1) | square_to_bb(SQ_E1);
-                break;
+                return ( sq_is_attacked(us, SQ_C1, occ) || 
+                        sq_is_attacked(us, SQ_D1, occ) || 
+                        sq_is_attacked(us, SQ_E1, occ) );
             case BLACK_OO:
-                king_path = square_to_bb(SQ_E8) | square_to_bb(SQ_F8) | square_to_bb(SQ_G8);
-                break;
+                return ( sq_is_attacked(us, SQ_E8, occ) || 
+                        sq_is_attacked(us, SQ_F8, occ) || 
+                        sq_is_attacked(us, SQ_G8, occ) );
             case BLACK_OOO:
-                king_path = square_to_bb(SQ_C8) | square_to_bb(SQ_D8) | square_to_bb(SQ_E8);
-                break;
+                return ( sq_is_attacked(us, SQ_C8, occ) || 
+                        sq_is_attacked(us, SQ_D8, occ) || 
+                        sq_is_attacked(us, SQ_E8, occ) );
             default:
                 std::cerr << "Error: Invalid castling rights" << std::endl;
                 return false;
         }
-        return king_path & all_attacks(~st->side_to_move);
     }
 
     BitBoard Position::all_attacks(Color c) const {
@@ -293,49 +316,55 @@ namespace Juujfish {
 
             for (int i = 0; i < num_pieces; ++i) {
                 Square s = Square(lsb(pop_lsb(bb)));
-                attack |= pt == PAWN ? pawn_attacks_bb(s, c) : attacks_bb(s, pt, boardBB);
+                attack |= pt == PAWN ? pawn_attacks_bb(c, s) : attacks_bb(s, pt, boardBB);
             }
         }
         return attack;
     }
 
-    bool Position::sq_is_attacked(Color c, Square s, BitBoard occupied) const {
+    bool Position::sq_is_attacked(Color c, Square s, BitBoard occ) const {
         Color them = ~c;
 
-        BitBoard target_sq = square_to_bb(s);
+        for (PieceType pt : {PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING}) {
+            BitBoard them_piece_bb = pieces(them, pt);
 
-        for (PieceType pt : {QUEEN, ROOK, BISHOP, KNIGHT, PAWN, KING}) {
-            BitBoard bb = pieceBB[them][pt];
-            int num_pieces = popcount(bb);
-
-            for (int i = 0; i < num_pieces; ++i) {
-                Square s = Square(lsb(pop_lsb(bb)));
-                BitBoard attack = pt == PAWN ? pawn_attacks_bb(s, them) : attacks_bb(s, pt, occupied);
-
-                if (attack & target_sq)
-                    return true;
-            }
+            BitBoard attack_mask = pt == PAWN ? pawn_attacks_bb(c, s) : attacks_bb(s, pt, occ);
+            if (them_piece_bb & attack_mask) return true;
         }
         return false;
     }
 
     BitBoard Position::attacked_by(Color c, Square s) const {
-        BitBoard attack_pieces = 0;
+        BitBoard attack_pieces = 0ULL;
         BitBoard occ = pieces();
         for (PieceType pt : {PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING}) {
-            BitBoard piece_bb = pieces(c, pt);
+            BitBoard them_piece_bb = pieces(c, pt);
 
-            while (piece_bb) {
-                Square piece_sq = lsb(pop_lsb(piece_bb));
-
-                BitBoard attack = pt == PAWN ? pawn_attacks_bb(piece_sq, c) : attacks_bb(piece_sq, pt, occ);
-                
-                if ((attack & s) != 0) 
-                    attack_pieces |= piece_sq;
-            }
+            BitBoard attack_mask = pt == PAWN ? pawn_attacks_bb(~c, s) : attacks_bb(s, pt, occ);
+            attack_pieces |= them_piece_bb & attack_mask;
         }
         return attack_pieces;
     }
+
+    template<PieceType Pt>
+    BitBoard Position::attacks_by(Color c) const {
+        BitBoard piece_bb = pieces(c, Pt);
+        BitBoard attacks = 0ULL;
+        BitBoard occ = pieces();
+
+        while (piece_bb) {
+            Square piece_sq = lsb(pop_lsb(piece_bb));
+            attacks |= Pt == PAWN ? pawn_attacks_bb(c, piece_sq) : attacks_bb(piece_sq, Pt, occ);
+        }
+        return attacks;
+    }
+
+    template BitBoard Position::attacks_by<PAWN>(Color c) const;
+    template BitBoard Position::attacks_by<KNIGHT>(Color c) const;
+    template BitBoard Position::attacks_by<BISHOP>(Color c) const;
+    template BitBoard Position::attacks_by<ROOK>(Color c) const;
+    template BitBoard Position::attacks_by<QUEEN>(Color c) const;
+    template BitBoard Position::attacks_by<KING>(Color c) const;
 
     void Position::update_checkers() {
         Color us = st->side_to_move;
@@ -357,7 +386,7 @@ namespace Juujfish {
 
         for (PieceType pt : {PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING}) {
             if (pt == PAWN)
-                st->check_squares[PAWN] = pawn_attacks_bb(king_sq, them);
+                st->check_squares[PAWN] = pawn_attacks_bb(them, king_sq);
             else if (pt == KING)
                 st->check_squares[KING] = 0;
             else 
@@ -876,6 +905,14 @@ namespace Juujfish {
         }
         st->repetition = new_repetition;
         return new_repetition != 0;
+    }
+
+    bool Position::is_repetition() const {
+        return st->repetition != 0;
+    }
+
+    bool Position::is_draw() const {
+        return st->fifty_move_counter >= 100 || st->repetition >= 3;
     }
 
 } // namespace Juujfish

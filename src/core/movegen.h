@@ -27,21 +27,22 @@
         GradedMove* generate_promotions(GradedMove *move_list, Square to);
         
         template<Color C, GenType Gt>
-        GradedMove* generate_pawn_moves(Position &pos, GradedMove *move_list, BitBoard target);
+        GradedMove* generate_pawn_moves(const Position &pos, GradedMove *move_list, BitBoard target);
 
         template<Color C, PieceType Pt>
-        GradedMove* generate_piece_moves(Position &pos, GradedMove *move_list, BitBoard target);
+        GradedMove* generate_piece_moves(const Position &pos, GradedMove *move_list, BitBoard target);
 
         template<Color C, GenType Gt>
-        GradedMove* generate_moves(Position &pos, GradedMove *move_list);
+        GradedMove* generate_moves(const Position &pos, GradedMove *move_list);
 
         template<GenType Gt>
-        GradedMove* generate(Position &pos, GradedMove *move_list);
+        GradedMove* generate(const Position &pos, GradedMove *move_list);
+        
 
         template<GenType Gt>
         struct MoveList {
             public:
-                explicit MoveList(Position &pos) : last(generate<Gt>(pos, move_list)) {}
+                explicit MoveList(const Position &pos) : last(generate<Gt>(pos, move_list)) {}
 
                 const GradedMove *begin() { return move_list; }
                 const GradedMove *end() { return last; }

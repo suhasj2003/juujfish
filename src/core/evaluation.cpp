@@ -62,9 +62,11 @@ namespace Juujfish {
         score += KING_VALUE;
 
         // Pawns:
+        center_phase_multiplier = (P == OPENING) ? 2 : ((P == MIDDLEGAME) ? 1 : 0);
+
         while (pawns) {
             Square pawn_sq = lsb(pop_lsb(pawns));
-            BitBoard pawn_attack = pawn_attacks_bb(pawn_sq, C);
+            BitBoard pawn_attack = pawn_attacks_bb(C, pawn_sq);
 
             score += (int) (0.1 * PAWN_VALUE * popcount(pawn_attack));
 
@@ -97,7 +99,7 @@ namespace Juujfish {
                 int attack_squares_nb = popcount(bishop_attack_ray);
                 
                 score += (int) (0.05 * BISHOP_VALUE * attack_squares_nb);
-                score += (int) (0.05 * BISHOP_VALUE * std::max(0, attack_squares_nb - 3));
+                score += (int) (0.01 * BISHOP_VALUE * std::max(0, attack_squares_nb - 3));
             }
             score += (OUTER_CENTER & bishop_sq) ? center_phase_multiplier * OUTER_CENTER_BONUS : 0;
         }
@@ -114,13 +116,13 @@ namespace Juujfish {
 
 
         // Queens:
-        phase_multiplier = (P == OPENING) ? 0.5 : ((P == MIDDLEGAME) ? 1 : 1.5);
+        phase_multiplier = (P == OPENING) ? 0.01 : ((P == MIDDLEGAME) ? 0.7 : 1.5);
 
         while (queens) {
             Square queen_sq = lsb(pop_lsb(queens));
             BitBoard queen_attack = attacks_bb(queen_sq, ROOK);
 
-            score += (int) (phase_multiplier * 0.05 * QUEEN_VALUE * popcount(queen_attack));
+            score += (int) (phase_multiplier * 0.01 * QUEEN_VALUE * popcount(queen_attack));
         }
 
 

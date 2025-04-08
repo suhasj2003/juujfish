@@ -20,11 +20,11 @@ namespace Juujfish {
         init_magics();
 
         for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1) {
-            PawnPushes[WHITE][s1] = pawn_pushes_bb(square_to_bb(s1), WHITE);
-            PawnPushes[BLACK][s1] = pawn_pushes_bb(square_to_bb(s1), BLACK);
+            PawnPushes[WHITE][s1] = pawn_pushes_bb(WHITE, square_to_bb(s1));
+            PawnPushes[BLACK][s1] = pawn_pushes_bb(BLACK, square_to_bb(s1));
 
-            PawnAttacks[WHITE][s1] = pawn_attacks_bb(square_to_bb(s1), WHITE);
-            PawnAttacks[BLACK][s1] = pawn_attacks_bb(square_to_bb(s1), BLACK);
+            PawnAttacks[WHITE][s1] = pawn_attacks_bb(WHITE, square_to_bb(s1));
+            PawnAttacks[BLACK][s1] = pawn_attacks_bb(BLACK, square_to_bb(s1));
 
             for (int step : {-9, -8, -7, -1, 1, 7, 8, 9}) {
                 if (is_square(Square(s1 + step)) && manhattan_distance(s1, Square(s1 + step)) <= 2)

@@ -170,24 +170,24 @@
         }
 
         // Pawn Moves lookup:
-        inline BitBoard pawn_pushes_bb(BitBoard b, Color c) {
+        inline BitBoard pawn_pushes_bb(Color c, BitBoard b) {
             BitBoard pushesbb = c == WHITE ? shift<NORTH>(b) : shift<SOUTH>(b);
             if (rank_of(lsb(b)) == (c == WHITE ? RANK_2 : RANK_7))
                 pushesbb |= c == WHITE ? shift<NORTH + NORTH>(b) : shift<SOUTH + SOUTH>(b);
             return pushesbb;
         }
 
-        inline BitBoard pawn_pushes_bb(Square s, Color c) {
+        inline BitBoard pawn_pushes_bb(Color c, Square s) {
             assert(is_square(s));
             return PawnPushes[c][s];
         }
 
-        inline BitBoard pawn_attacks_bb(BitBoard b, Color c) {
+        inline BitBoard pawn_attacks_bb(Color c, BitBoard b) {
             return c == WHITE ? shift<NORTH_EAST>(b) | shift<NORTH_WEST>(b)
                               : shift<SOUTH_EAST>(b) | shift<SOUTH_WEST>(b);
         }
 
-        inline BitBoard pawn_attacks_bb(Square s, Color c) {
+        inline BitBoard pawn_attacks_bb(Color c, Square s) {
             assert(is_square(s));
             return PawnAttacks[c][s];
         }

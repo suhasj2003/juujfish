@@ -25,7 +25,7 @@ namespace Juujfish {
     }
 
     template<Color C, GenType Gt>
-    GradedMove* generate_pawn_moves(Position &pos, GradedMove *move_list, BitBoard target) {
+    GradedMove* generate_pawn_moves(const Position &pos, GradedMove *move_list, BitBoard target) {
         BitBoard pawns_bb = pos.pieces(C, PAWN);
 
         BitBoard pawns_on_7 = pawns_bb & (C == WHITE ? RANK_7_BB : RANK_2_BB);
@@ -79,7 +79,7 @@ namespace Juujfish {
                 assert(rank_of(pos.get_ep_square()) == (C == WHITE ? RANK_6 : RANK_3));
 
                 Square to = pos.get_ep_square();
-                BitBoard ep_pawns = pawn_attacks_bb(to, ~C) & pawns_not_on_7;
+                BitBoard ep_pawns = pawn_attacks_bb(~C, to) & pawns_not_on_7;
 
                 while (ep_pawns) {
                     Square from = lsb(pop_lsb(ep_pawns));
@@ -111,7 +111,7 @@ namespace Juujfish {
     }
 
     template<Color C, PieceType Pt>
-    GradedMove* generate_piece_moves(Position &pos, GradedMove *move_list, BitBoard target) {
+    GradedMove* generate_piece_moves(const Position &pos, GradedMove *move_list, BitBoard target) {
         static_assert(Pt != PAWN && Pt != KING, "Error: Pawn and King moves are not supported by generate_moves.");
 
         BitBoard bb = pos.pieces(C, Pt);
@@ -131,7 +131,7 @@ namespace Juujfish {
 
 
     template<Color Us, GenType Gt>
-    GradedMove* generate_moves(Position &pos, GradedMove *move_list) {
+    GradedMove* generate_moves(const Position &pos, GradedMove *move_list) {
         Color them = ~Us;
 
         Square king_sq = lsb(pos.pieces(Us, KING));
@@ -186,7 +186,7 @@ namespace Juujfish {
     }
 
     template<GenType Gt>
-    GradedMove* generate(Position &pos, GradedMove *move_list) {
+    GradedMove* generate(const Position &pos, GradedMove *move_list) {
         static_assert(Gt != LEGAL, "Error: Legal moves generation is not supported right now.");
         assert((Gt == EVASIONS) == bool(pos.get_checkers()));
 
@@ -195,13 +195,13 @@ namespace Juujfish {
         return us == WHITE ? generate_moves<WHITE, Gt>(pos, move_list) : generate_moves<BLACK, Gt>(pos, move_list);
     }
 
-    template GradedMove* generate<CAPTURES>(Position&, GradedMove*);
-    template GradedMove* generate<QUIETS>(Position&, GradedMove*);
-    template GradedMove* generate<EVASIONS>(Position&, GradedMove*);
-    template GradedMove* generate<NON_EVASIONS>(Position&, GradedMove*);
+    template GradedMove* generate<CAPTURES>(const Position&, GradedMove*);
+    template GradedMove* generate<QUIETS>(const Position&, GradedMove*);
+    template GradedMove* generate<EVASIONS>(const Position&, GradedMove*);
+    template GradedMove* generate<NON_EVASIONS>(const Position&, GradedMove*);
 
     template<>
-    GradedMove* generate<LEGAL>(Position &pos, GradedMove *move_list) {
+    GradedMove* generate<LEGAL>(const Position &pos, GradedMove *move_list) {
         Color us = pos.get_side_to_move();
 
         Square king_sq = lsb(pos.pieces(us, KING));

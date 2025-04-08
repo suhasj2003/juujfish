@@ -7,132 +7,9 @@
 #include "movegen.h"
 #include "search.h"
 #include "evaluation.h"
+#include "misc.h"
 
 using namespace Juujfish;
-
-std::string pretty(BitBoard b) {
-
-    std::string s = "+---+---+---+---+---+---+---+---+\n";
-
-    for (int r = RANK_8; r >= RANK_1; --r)
-    {
-        for (int f = FILE_A; f <= FILE_H; ++f)
-            s += b & Square((r << 3) + f) ? "| X " : "|   ";
-
-        s += "| " + std::to_string(1 + r) + "\n+---+---+---+---+---+---+---+---+\n";
-    }
-    s += "  a   b   c   d   e   f   g   h\n";
-
-    return s;
-}
-
-std::string pretty(Position &p) {
-
-    std::string s = "+---+---+---+---+---+---+---+---+\n";
-
-    for (int r = RANK_8; r >= RANK_1; --r)
-    {
-        for (int f = FILE_A; f <= FILE_H; ++f) {
-            Piece piece = p.piece_at(Square((r << 3) + f));
-            if (piece != NO_PIECE) {
-                s += "| " + std::string(1, piece_to_char(piece)) + " ";
-            } else {
-                s += "|   ";
-            }
-        }  
-        s += "| " + std::to_string(1 + r) + "\n+---+---+---+---+---+---+---+---+\n";
-    }
-    s += "  a   b   c   d   e   f   g   h\n";
-
-    return s;
-}
-
-int squareIndex(const std::string& pos) {
-    return (pos[1] - '1') * 8 + (pos[0] - 'a');
-}
-
-// Converts move string to a Move object
-// Move parseMove(const std::string& moveStr) {
-//     if (moveStr.length() < 4 || moveStr.length() > 5) {
-//         return Move(0);
-//     }
-
-//     int from = squareIndex(moveStr.substr(0, 2));
-//     int to = squareIndex(moveStr.substr(2, 2));
-//     PieceType promotionPiece = KNIGHT;
-
-//     if (moveStr.length() == 5) {
-//         switch (moveStr[4]) {
-//             case 'n': promotionPiece = KNIGHT; break;
-//             case 'b': promotionPiece = BISHOP; break;
-//             case 'r': promotionPiece = ROOK; break;
-//             case 'q': promotionPiece = QUEEN; break;
-//             default: return Move(0);
-//         }
-//         return Move::make<PROMOTION>(Square(to), Square(from), promotionPiece);
-//     }
-
-//     // Special case detection (castling, en passant) would need board state
-//     if ((from == 4 && to == 6) || (from == 60 && to == 62)) {
-//         Move::make<CASTLING>(Square(to), Square(from));
-//     } else if ((from == 4 && to == 2) || (from == 60 && to == 58)) {
-//         Move::make<CASTLING>(Square(to), Square(from));
-//     }
-
-//     return Move::make<NORMAL>(Square(to), Square(from));
-// }
-
-std::string moveToString(Move m) {
-    std::string moveStr;
-
-    Square from = m.from_sq();
-    Square to = m.to_sq();
-
-    moveStr += char('a' + file_of(from));
-    moveStr += char('1' + rank_of(from));
-    moveStr += char('a' + file_of(to));
-    moveStr += char('1' + rank_of(to));
-
-    if (m.type_of() == PROMOTION) {
-        switch (m.promotion_type()) {
-            case KNIGHT: moveStr += 'n'; break;
-            case BISHOP: moveStr += 'b'; break;
-            case ROOK: moveStr += 'r'; break;
-            case QUEEN: moveStr += 'q'; break;
-            default: break;
-        }
-    } else if (m.type_of() == CASTLING) {
-        if (from == Square(4) && to == Square(6)) {
-            return "e1g1"; // White kingside castling
-        } else if (from == Square(4) && to == Square(2)) {
-            return "e1c1"; // White queenside castling
-        } else if (from == Square(60) && to == Square(62)) {
-            return "e8g8"; // Black kingside castling
-        } else if (from == Square(60) && to == Square(58)) {
-            return "e8c8"; // Black queenside castling
-        }
-    }
-
-    return moveStr;
-}
-
-Move parseMove(Position &pos, const std::string &moveStr) {
-    if (moveStr.length() < 2) {
-        return Move(0); // Invalid move
-    }
-
-    MoveList<LEGAL> legalMoves(pos);
-
-    for (auto m : legalMoves) {
-        std::string legalMoveStr = moveToString(m);
-
-        if (legalMoveStr == moveStr) {
-            return m; // Found a matching legal move
-        }
-    }
-
-    return Move(0); // No matching move found
-}
 
 uint64_t perft(Position &pos, int depth, int d) {
     if (depth == 0) {
@@ -140,7 +17,6 @@ uint64_t perft(Position &pos, int depth, int d) {
     }
     uint64_t num_positions = 0;
     StateInfo st;
-
 
     if (pos.is_in_check()) {
         for (auto m : MoveList<EVASIONS>(pos)) {
@@ -186,16 +62,14 @@ uint64_t perft(Position &pos, int depth, int d) {
     return num_positions;
 }
 
-
-int main()
-{
-    BitBoards::init();
-    Position::init();
+void game() {
 
     auto states = new std::deque<StateInfo>(1);
+    int fixed_depth = 8;
 
     Position p;
     p.set("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", &states->back());
+    // p.set("8/8/7k/8/8/5q2/7K/3r4 b - - 3 78", &states->back());
 
     bool mate_or_draw = false;
     Value score = VALUE_INFINITE;
@@ -204,6 +78,7 @@ int main()
 
     srand(time(NULL));
     Color ENGINE = Color(rand() & 1);
+    // Color ENGINE = WHITE;
     // Color ENGINE = BLACK;
 
     while (!mate_or_draw) {
@@ -213,17 +88,37 @@ int main()
             Worker w;
             w.init();
 
-            score = w.search<true>(p, 5);
+            w.set_searched_depth(fixed_depth);
+
+
+            auto start = std::chrono::high_resolution_clock::now();
+            score = w.search<true>(p, -VALUE_INFINITE, VALUE_INFINITE, w.get_searched_depth());
+            auto end = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+
             Move m = Move(w.get_best_move().raw());
+
+            if (score == -(VALUE_MATE) && m.is_nullmove()) {
+                mate_or_draw = true;
+                continue;
+            }
+
+            score = ENGINE == WHITE ? score : -score;
 
             states->emplace_back();
 
             p.make_move(m, &states->back(), p.gives_check(m));
 
+            // std::cout << "Best move: " << moveToString(m) << " (score: " << score << ")" << std::endl;               
+
             std::cout << std::endl;
             std::cout << pretty(p) << std::endl;
+            std::cout << "Best move: " << moveToString(m) << " (score: " << (double) score / 100 << ")" << std::endl;
+            std::cout << "Nodes: " << w.get_nodes() << std::endl;
+            std::cout << "Prunes: " << w.get_prunes() << std::endl;
+            std::cout << "Search execution time: " << (double) duration.count() / 1000 << " seconds" << std::endl << std::endl;
 
-            if (score == VALUE_DRAW || score == -(VALUE_MATE + 5) || score == (VALUE_MATE - 4))
+            if (score == VALUE_DRAW || score == (VALUE_MATE - 1))
                 mate_or_draw = true;
 
         } else {
@@ -252,36 +147,28 @@ int main()
     std::cout << std::endl;
     if (score == VALUE_DRAW) {
         std::cout << "DRAW" << std::endl;
-    } else if (score == -(VALUE_MATE + 5) || score == (VALUE_MATE - 4)) {
+    } else if (score == (VALUE_MATE - 1) || score == -(VALUE_MATE)) {
         std::cout << "CHECKMATE!!!" << std::endl;
     } else {
         std::cerr << "Error: Neither checkmate or draw." << std::endl;
     }
 
+}
 
+int main()
+{
+    BitBoards::init();
+    Position::init();
+
+   
+    game();
+
+    // Position p;
+
+    // auto states = new std::vector<StateInfo>(1);
+
+    // p.set("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", &states->back());
     // std::cout << pretty(p) << std::endl;
-    // std::cout << pretty(p.get_blockers(WHITE)) << std::endl;
-    // std::cout << pretty(p.get_pinners(BLACK)) << std::endl;
-
-
-
-    // p.set("r3k1rQ/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N4p/PPPBBPPP/R3K2R b KQq - 0 1", &states->back());
-
-
-    // std::cout << pretty(p) << std::endl;
-    // std::cout << "MoveList size: " << MoveList<NON_EVASIONS>(p).size() << std::endl;
-    // for (auto m : MoveList<NON_EVASIONS>(p))
-    //     std::cout << moveToString(m) << std::endl;
-        
-    // std::cout << std::endl << std::endl;
-    // for (auto m : MoveList<NON_EVASIONS>(p))
-    //     if (!p.legal(m))
-    //         std::cout << moveToString(m) << std::endl;
-
-    // std::string fen;
-    // std::cout << "Enter fen: ";
-    // std::cin >> fen;
-
 
     // while (true) {
     //     std::cout << "Enter depth: ";
@@ -299,16 +186,6 @@ int main()
     //     std::cout << std::endl << "Number of positions at depth: " << depth << ": " << total_positions << std::endl;
     //     std::cout << std::endl << "MNPs: " << (total_positions / duration.count()) / 1000 << std::endl << std::endl;
     // }
-
-    // int depth = 7;
-
-    // auto start = std::chrono::high_resolution_clock::now();
-    // uint64_t total_positions = perft(p, depth);
-    // auto end = std::chrono::high_resolution_clock::now();
-    // auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-
-    // std::cout << "Perft execution time: " << duration.count() << " milliseconds" << std::endl;
-    // std::cout << std::endl << "Number of positions at depth: " << depth << ": " << total_positions << std::endl << std::endl;
     
     return 0;
 

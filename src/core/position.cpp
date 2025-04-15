@@ -1,4 +1,6 @@
 #include "position.h"
+#include "misc.h"
+
 #include <iostream>
 
 namespace Juujfish {
@@ -76,11 +78,11 @@ namespace Juujfish {
                             break;
                         case KNIGHT:
                         case BISHOP:
-                            st->minor_piece_key ^= Zobrist::psq[p][i];
+                            st->minor_key ^= Zobrist::psq[p][i];
                             break;
                         case ROOK:
                         case QUEEN:
-                            st->major_piece_key ^= Zobrist::psq[p][i];
+                            st->major_key ^= Zobrist::psq[p][i];
                         default:
                             break;
                     }
@@ -197,10 +199,15 @@ namespace Juujfish {
         Piece p         = piece_at(from);
         PieceType pt    = type_of(p);
 
-        Color us    = st->side_to_move;
+        Color us    = get_side_to_move();
         Color them  = ~us;
 
         Square king_sq = lsb(pieces(them, KING));
+
+        if (color_of(p) != us) {
+            std::cout << moveToString(m) << std::endl;
+            std::cout << get_key() << std::endl;
+        } 
 
         assert(color_of(p) == us);
 
@@ -236,6 +243,10 @@ namespace Juujfish {
                 return false;
         }
     }
+
+    /* This is for testing if Transposition Table move is valid or if it is a collision with another
+       position. */
+    // bool Position::pseudo_legal(Move m) const {}
 
     bool Position::is_capture(Move m) const {
         Square to = m.to_sq();
@@ -308,18 +319,19 @@ namespace Juujfish {
         }
     }
 
-    BitBoard Position::all_attacks(Color c) const {
-        BitBoard attack = 0;
-        for (PieceType pt : {QUEEN, ROOK, BISHOP, KNIGHT, PAWN, KING}) {
-            BitBoard bb = pieceBB[c][pt];
-            int num_pieces = popcount(bb);
+    int Position::count_attacks(Color c, const BitBoard zone) const {
+        int attacks = popcount(pawn_attacks_bb(c, pieces(c, PAWN)) & zone);
+        BitBoard occ = pieces();
 
-            for (int i = 0; i < num_pieces; ++i) {
+        for (PieceType pt : {QUEEN, ROOK, BISHOP, KNIGHT, KING}) {
+            BitBoard bb = pieces(c, pt);
+
+            while (bb) {
                 Square s = Square(lsb(pop_lsb(bb)));
-                attack |= pt == PAWN ? pawn_attacks_bb(c, s) : attacks_bb(s, pt, boardBB);
+                attacks += popcount(attacks_bb(s, pt, occ) & zone);
             }
         }
-        return attack;
+        return attacks;
     }
 
     bool Position::sq_is_attacked(Color c, Square s, BitBoard occ) const {
@@ -523,12 +535,18 @@ namespace Juujfish {
         new_st->prev = old_st;
         new_st->next = nullptr;
 
+        new_st->zobrist_key = old_st->zobrist_key;
+        new_st->pawn_key = old_st->pawn_key;
+        new_st->minor_key = old_st->minor_key;
+        new_st->major_key = old_st->major_key;
+
         new_st->previous_move = m;
         new_st->fifty_move_counter += 1;
         new_st->plies_from_start += 1;
         new_st->captured_piece = capture_piece;
         new_st->repetition = 0;
         new_st->side_to_move = them;
+        new_st->castling_rights = old_st->castling_rights;
 
         new_st->can_ep = false;
         new_st->ep_square = SQ_NONE;
@@ -576,8 +594,8 @@ namespace Juujfish {
             st->zobrist_key ^= Zobrist::psq[piece_of(us, ROOK)][rfrom];
             st->zobrist_key ^= Zobrist::psq[piece_of(us, ROOK)][rto];
 
-            st->major_piece_key ^= Zobrist::psq[piece_of(us, ROOK)][rfrom];
-            st->major_piece_key ^= Zobrist::psq[piece_of(us, ROOK)][rto];
+            st->major_key ^= Zobrist::psq[piece_of(us, ROOK)][rfrom];
+            st->major_key ^= Zobrist::psq[piece_of(us, ROOK)][rto];
 
             if (st->castling_rights & (us & KING_SIDE)) 
                 st->zobrist_key ^= us == WHITE ? Zobrist::castling_rights[0] : Zobrist::castling_rights[2];
@@ -589,6 +607,9 @@ namespace Juujfish {
             
         } else if (move_type == ENPASSANT) {
             Square capture_sq = Square(to + ((us == WHITE) ? -8 : 8));
+
+            assert(type_of(p) == PAWN);
+            assert(type_of(capture_piece) == PAWN);
 
             st->fifty_move_counter = 0;
 
@@ -607,11 +628,11 @@ namespace Juujfish {
                 switch (type_of(capture_piece)) {
                     case KNIGHT:
                     case BISHOP:
-                        st->minor_piece_key ^= Zobrist::psq[capture_piece][to];
+                        st->minor_key ^= Zobrist::psq[capture_piece][to];
                         break;
                     case ROOK:
                     case QUEEN:
-                        st->major_piece_key ^= Zobrist::psq[capture_piece][to];
+                        st->major_key ^= Zobrist::psq[capture_piece][to];
                         break;
                     default:
                         std::cerr << "Error: Promotion capture piece type is not defined." << std::endl;
@@ -690,11 +711,11 @@ namespace Juujfish {
                         st->pawn_key ^= Zobrist::psq[capture_piece][to];
                     case KNIGHT:
                     case BISHOP:
-                        st->minor_piece_key ^= Zobrist::psq[capture_piece][to];
+                        st->minor_key ^= Zobrist::psq[capture_piece][to];
                         break;
                     case ROOK:
                     case QUEEN:
-                        st->major_piece_key ^= Zobrist::psq[capture_piece][to];
+                        st->major_key ^= Zobrist::psq[capture_piece][to];
                         break;
                     case KING:
                         std::cerr << "Error: King cannot be captured" << std::endl;
@@ -912,7 +933,7 @@ namespace Juujfish {
     }
 
     bool Position::is_draw() const {
-        return st->fifty_move_counter >= 100 || st->repetition >= 3;
+        return st->fifty_move_counter >= 100 || st->repetition >= 2;
     }
 
 } // namespace Juujfish

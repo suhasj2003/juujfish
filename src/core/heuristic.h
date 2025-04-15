@@ -62,7 +62,7 @@
                 inline void clear() override { history.init(0); }
 
                 inline int lookup(const Move &m, Color c, PieceType pt) const;
-                inline void update(const Move &m, Color c, PieceType pt, int depth);
+                inline void update(const Move &m, Color c, PieceType pt, uint8_t depth);
 
             private:
                 NDArray<int, COLOR_NB, PIECE_TYPE_NB, SQUARE_NB> history;
@@ -71,7 +71,7 @@
         int HistoryHeuristic::lookup(const Move &m, Color c, PieceType pt) const {
             return history.get(c, pt, m.to_sq());
         }
-        void HistoryHeuristic::update(const Move &m, Color c, PieceType pt, int depth) {
+        void HistoryHeuristic::update(const Move &m, Color c, PieceType pt, uint8_t depth) {
             int current_score = history.get(c, pt, m.to_sq());
             int clamped_score = std::clamp(depth * depth, 0, HISTORY_MAX);
 
@@ -89,7 +89,7 @@
                 inline void clear() override { butterfly.init(1); }
 
                 inline int lookup(const Move &m, Color c) const;
-                inline void update(const Move &m, Color c, int depth);
+                inline void update(const Move &m, Color c, uint8_t depth);
 
             private:
                 NDArray<int, COLOR_NB, SQUARE_NB, SQUARE_NB> butterfly; 
@@ -99,7 +99,7 @@
             return butterfly.get(c, m.from_sq(), m.to_sq());
         }
 
-        void ButterflyHeuristic::update(const Move &m, Color c, int depth) {
+        void ButterflyHeuristic::update(const Move &m, Color c, uint8_t depth) {
             int current_score = butterfly.get(c, m.from_sq(), m.to_sq());
             int clamped_score = std::clamp(current_score + depth, 1, BUTTERFLY_MAX);
 

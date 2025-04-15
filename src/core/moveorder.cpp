@@ -69,6 +69,7 @@ namespace Juujfish {
 
             } else if (Gt == QUIETS) {
                 int value = killers->lookup(m, ply) + (history->lookup(m, us, pt) / butterfly->lookup(m, us));
+                
 
                 value += pos.get_check_squares(pt) & to ? 10 : 0;
 
@@ -96,7 +97,7 @@ namespace Juujfish {
 
     Move MoveOrderer::next() {
         
-        auto bad_quiets_threshhold = 5;
+        auto bad_quiets_threshhold = 0;
 
         switch (stage) {
             case CAPTURES_GEN:

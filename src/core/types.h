@@ -124,6 +124,13 @@
             return CastlingRights((c == WHITE ? WHITE_CASTLING : BLACK_CASTLING) & cr);
         }
 
+        enum Bound {
+            BOUND_NONE,
+            BOUND_UPPER,
+            BOUND_LOWER,
+            BOUND_EXACT = BOUND_UPPER | BOUND_LOWER
+        };
+
         constexpr Value PAWN_VALUE      = 100;
         constexpr Value KNIGHT_VALUE    = 290;
         constexpr Value BISHOP_VALUE    = 320;
@@ -154,7 +161,7 @@
         constexpr Color color_of(Piece p) { return Color(int(p) >> 3); }
         constexpr PieceType type_of(Piece p) { return PieceType(int(p) & 7); }
 
-        using Depth = int;
+        using Depth = uint8_t;
 
         enum MoveType {
             NORMAL,
@@ -203,7 +210,7 @@
             return dist(gen);
         }
 
-        const int MAX_PLY = 128; // max depth of search
+        const uint8_t MAX_PLY = 128; // max depth of search
 
     } // namespace Juujfish
 

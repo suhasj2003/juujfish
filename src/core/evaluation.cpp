@@ -138,7 +138,7 @@ namespace Juujfish {
     template<Color C, Phase P>
     Value score_king_safety(Position &pos) {
         Square king_sq = lsb(pos.pieces(C, KING));
-        BitBoard king_zone = attacks_bb(king_sq, KING);
+        const BitBoard king_zone = attacks_bb(king_sq, KING);
 
         BitBoard pawn_shield_zone = king_zone & rank_bb(Rank(rank_of(king_sq) + (C == WHITE ? 1 : -1)));
 
@@ -146,7 +146,7 @@ namespace Juujfish {
 
         int pawn_shield = phase_multiplier * (-50 + 20 * popcount(pawn_shield_zone & pos.pieces(C, PAWN)));
         int open_file = (pos.pieces(PAWN) & file_bb(king_sq)) ? 0 : -OPEN_FILE_BONUS;
-        int def_atk_squares = 3 * (popcount(pos.all_attacks(C) & king_zone) - popcount(pos.all_attacks(~C) & king_zone));
+        int def_atk_squares = 3 * pos.count_attacks(C, king_zone) - pos.count_attacks(~C, king_zone);
 
         return pawn_shield + open_file + def_atk_squares;
     }

@@ -12,8 +12,8 @@
             Key zobrist_key;
 
             Key pawn_key;
-            Key minor_piece_key;
-            Key major_piece_key;
+            Key minor_key;
+            Key major_key;
 
             int fifty_move_counter;
             int plies_from_start;
@@ -59,8 +59,9 @@
                 constexpr StateInfo*        get_state() const {return st;}
                 constexpr Key               get_key() const {return st->zobrist_key;}
                 constexpr Key               get_pawn_key() const {return st->pawn_key;}
-                constexpr Key               get_minor_piece_key() const {return st->minor_piece_key;}
-                constexpr Key               get_major_piece_key() const {return st->major_piece_key;}
+                constexpr Key               get_minor_key() const {return st->minor_key;}
+                constexpr Key               get_major_key() const {return st->major_key;}
+                constexpr int               get_repetition() const {return st->repetition;}
                 constexpr int               get_fifty_move_counter() const {return st->fifty_move_counter;}
                 constexpr int               get_plies_from_start() const {return st->plies_from_start;}
                 constexpr Color             get_side_to_move() const {return st->side_to_move;}
@@ -72,6 +73,7 @@
                 constexpr bool              can_en_passant() const {return st->can_ep;}
                 constexpr Square            get_ep_square() const {return st->ep_square;}
                 constexpr BitBoard          get_check_squares(PieceType pt) const {return st->check_squares[pt];}
+                
 
                 void copy(const Position& pos);
 
@@ -92,6 +94,7 @@
                 bool remove_piece(Square s);
 
                 bool legal(Move m) const;
+                bool pseudo_legal(Move m) const;
                 bool gives_check(Move m) const;
 
                 bool is_capture(Move m) const;
@@ -106,7 +109,7 @@
                 void undo_en_passant(Color c, Square to, Square from, Square capture_sq);
                 void undo_promotion(Color c, Square to, Square from);
 
-                BitBoard all_attacks(Color c) const;
+                int count_attacks(Color c, const BitBoard zone) const;
                 bool sq_is_attacked(Color c, Square s, BitBoard occupied) const;
                 BitBoard attacked_by(Color c, Square s) const;
                 
@@ -121,6 +124,8 @@
                 bool is_draw() const;
                 bool is_repetition() const;
                 bool update_repetition();
+
+                inline uint16_t generate_secondary_key() const {return (st-> pawn_key ^ st->minor_key ^ st->major_key) >> 48;}
 
             private:
                 BitBoard pieceBB[COLOR_NB][PIECE_TYPE_NB];

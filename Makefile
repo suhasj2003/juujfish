@@ -1,5 +1,5 @@
 CXX := g++
-CXXFLAGS := -std=c++17 -Wall -Wextra -O3 -ffast-math -march=native -flto -funroll-loops -fno-exceptions -fno-rtti
+CXXFLAGS := -std=c++17 -Wall -Wextra -O3 -ffast-math -march=native -flto -funroll-loops -fno-exceptions -fno-rtti -g
 SRC_DIR := src/core
 TARGET := chessengine.out
 SOURCES := $(wildcard $(SRC_DIR)/*.cpp)

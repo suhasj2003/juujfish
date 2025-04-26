@@ -125,7 +125,9 @@
                 bool is_repetition() const;
                 bool update_repetition();
 
-                inline uint16_t generate_secondary_key() const {return (st-> pawn_key ^ st->minor_key ^ st->major_key) >> 48;}
+                inline uint16_t generate_secondary_key() const {return (st->pawn_key ^ st->minor_key ^ st->major_key) >> 48;}
+                Key recompute_zobrist() const; // Recompute the zobrist key based on the current position (For debugging purposes)
+                Key recompute_secondary() const; // Recompute the secondary key based on the current position (For debugging purposes)
 
             private:
                 BitBoard pieceBB[COLOR_NB][PIECE_TYPE_NB];

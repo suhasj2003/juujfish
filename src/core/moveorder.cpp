@@ -99,7 +99,16 @@ namespace Juujfish {
         
         auto bad_quiets_threshhold = 0;
 
+        top:
         switch (stage) {
+            case GENERAL_TT:
+            case EVASION_TT:
+                ++stage;
+                if (!table_move.is_nullmove())
+                    return table_move;
+                else
+                    goto top;
+
             case CAPTURES_GEN:
                 curr = end_bad_captures = moves;
                 end_moves               = generate<CAPTURES>(pos, curr);
@@ -165,7 +174,7 @@ namespace Juujfish {
             return Move::null_move();
 
             // EVASIONS:
-            case EVASIONS_GEN:
+            case EVASION_GEN:
                 curr      = moves;
                 end_moves = generate<EVASIONS>(pos, curr);
 

@@ -28,7 +28,7 @@ namespace Juujfish {
                       p == MIDDLEGAME  ? (evaluate<WHITE, MIDDLEGAME>(pos) - evaluate<BLACK, MIDDLEGAME>(pos)) :
                                          (evaluate<WHITE, ENDGAME>(pos) - evaluate<BLACK, ENDGAME>(pos));
 
-        return score + score_tempo(pos);
+        return score;
     }
 
     template<Color C, Phase P>

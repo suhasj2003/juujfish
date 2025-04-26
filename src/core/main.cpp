@@ -12,6 +12,8 @@
 
 using namespace Juujfish;
 
+int hash_hits = 0;
+
 uint64_t perft(Position &pos, int depth, int d, TranspositionTable *tt) {
     if (depth == 0) {
         return 1;
@@ -19,10 +21,20 @@ uint64_t perft(Position &pos, int depth, int d, TranspositionTable *tt) {
     uint64_t num_positions = 0;
     StateInfo st;
 
+    if (pos.get_key() != pos.recompute_zobrist()) {
+        std::cerr << "Error: Zobrist key mismatch!" << std::endl;
+    }
+
+    if (pos.generate_secondary_key() != pos.recompute_secondary()) {
+        std::cerr << "Error: Secondary key mismatch!" << std::endl;
+    }
+
     auto [tt_hit, tt_data, tt_writer] = tt->probe(pos.get_key(), pos.generate_secondary_key());
 
     if (tt_hit && tt_data.depth == depth) {
-        return tt_data.score;
+        hash_hits++;
+        if (tt_data.score >= 0)
+            return tt_data.score;
     }
 
     if (pos.is_in_check()) {
@@ -66,7 +78,11 @@ uint64_t perft(Position &pos, int depth, int d, TranspositionTable *tt) {
         }
     }
 
-    tt_writer.write(pos.get_key(), pos.generate_secondary_key(), depth, BOUND_EXACT, num_positions, Move::null_move());
+    tt_writer.write(pos.get_key(), 
+                    pos.generate_secondary_key(), 
+                    depth, BOUND_EXACT, 
+                    num_positions > ((uint64_t) std::numeric_limits<int16_t>::max()) ? -1 : num_positions, 
+                    Move::null_move());
 
     return num_positions;
 }
@@ -188,7 +204,6 @@ void self_game() {
 
     Position p;
     p.set("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", &states->back());
-    // p.set("8/8/7k/8/8/5q2/7K/3r4 b - - 3 78", &states->back());
 
     bool mate_or_draw = false;
     Value score = VALUE_INFINITE;
@@ -347,34 +362,12 @@ int main()
 
 
     // Position p;
-    // Move m;
 
     // auto states = new std::deque<StateInfo>(1);
 
+    // // p.set("rnbqkbnr/pppppppp/8/8/8/7N/PPPPPPPP/RNBQKB1R b KQkq - 0 1", &states->back());
     // p.set("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", &states->back());
-
-    // std::cout << p.get_minor_key() << std::endl;
-
-    // m = parseMove(p, "g1f3");
-    // states->emplace_back();
-    // p.make_move(m, &states->back(), p.gives_check(m));
-
-    // m = parseMove(p, "b8c6");
-    // states->emplace_back();
-    // p.make_move(m, &states->back(), p.gives_check(m));
-
-    // m = parseMove(p, "f3g1");
-    // states->emplace_back();
-    // p.make_move(m, &states->back(), p.gives_check(m));
-
-    // m = parseMove(p, "c6b8");
-    // states->emplace_back();
-    // p.make_move(m, &states->back(), p.gives_check(m));
-
-    // std::cout << p.get_minor_key() << std::endl;
-
-
-    // std::cout << pretty(p) << std::endl;
+   
 
     // while (true) {
     //     std::cout << "Enter depth: ";

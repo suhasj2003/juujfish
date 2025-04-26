@@ -13,6 +13,7 @@
     namespace Juujfish {
 
         enum Stage {
+            GENERAL_TT,
             CAPTURES_GEN,
             CAPTURE,
             QUIETS_GEN,
@@ -21,7 +22,8 @@
             BAD_QUIET,
 
             // EVASIONS:
-            EVASIONS_GEN,
+            EVASION_TT,
+            EVASION_GEN,
             EVASION
         };
 
@@ -33,12 +35,13 @@
         class MoveOrderer {
             public:
                 MoveOrderer(const Position &pos,
+                            const Move table_move,
                             int ply,
                             const KillerHeuristic *kh, 
                             const HistoryHeuristic *hh, 
                             const ButterflyHeuristic *bh) :
-                    pos(pos), ply(ply), killers(kh), history(hh), butterfly(bh) {
-                    stage = pos.is_in_check() ? EVASIONS_GEN : CAPTURES_GEN;
+                    pos(pos), table_move(table_move), ply(ply), killers(kh), history(hh), butterfly(bh) {
+                    stage = pos.is_in_check() ? EVASION_TT : GENERAL_TT;
                 }
                 Move next();
                 void skip_quiets_moves() { skip_quiets = true; } 
@@ -57,9 +60,9 @@
 
                 Stage stage;
 
-                const Position &pos;
+                const Position  &pos;
+                const Move      table_move = Move::null_move();
 
-                // Depth       depth;
                 int         ply;
 
                 const KillerHeuristic     *killers;

@@ -45,7 +45,7 @@
                 inline int8_t   get_depth() const { return depth; }
                 inline uint8_t  get_age() const { return bound_age & ((1 << 6) - 1); }
                 inline Bound    get_bound() const { return Bound(bound_age >> 6); }
-                inline int64_t   get_score() const { return score; }
+                inline int16_t   get_score() const { return score; }
                 inline Move     get_move() const { return move; }
 
                 inline void clear() { memset(this, 0, sizeof(TableEntry)); }

@@ -166,12 +166,20 @@ namespace Juujfish {
 
         Square king_sq = lsb(pieces(us, KING));
 
-        if (p == NO_PIECE) std::cout << m.raw() << std::endl;
+        if (p == NO_PIECE) { 
+            Position p_copy;
+            p_copy.copy(*this);
+            std::cout << pretty(p_copy) << std::endl;
+            std::cout << moveToString(m) << std::endl;
+            std::cout << get_key() << std::endl;
+            std::cout << recompute_zobrist() << std::endl;
+            std::cout << generate_secondary_key() << std::endl;
+            std::cout << recompute_secondary() << std::endl;
+        }
         assert(p != NO_PIECE);
 
         if (mt == CASTLING) {
-            CastlingRights cr = us == WHITE ? (to > from ? WHITE_OO : WHITE_OOO) 
-                                            : (to > from ? BLACK_OO : BLACK_OOO);
+            CastlingRights cr = to > from ? us & KING_SIDE : us & QUEEN_SIDE;
             if (castling_attacked(cr) || castling_blocked(cr))
                 return false;
             else
@@ -205,10 +213,8 @@ namespace Juujfish {
         Square king_sq = lsb(pieces(them, KING));
 
         if (color_of(p) != us) {
-            std::cout << moveToString(m) << std::endl;
-            std::cout << get_key() << std::endl;
-        } 
-
+            std::cout << moveToString(m) << "   " << color_of(p) << "   " << us << std::endl;
+        }
         assert(color_of(p) == us);
 
         if (get_check_squares(pt) & to)
@@ -395,6 +401,7 @@ namespace Juujfish {
         Color them = ~st->side_to_move;
 
         Square king_sq = lsb(pieces(them, KING));
+        BitBoard occ = pieces();
 
         for (PieceType pt : {PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING}) {
             if (pt == PAWN)
@@ -402,7 +409,7 @@ namespace Juujfish {
             else if (pt == KING)
                 st->check_squares[KING] = 0;
             else 
-                st->check_squares[pt] = attacks_bb(king_sq, pt, pieces());
+                st->check_squares[pt] = attacks_bb(king_sq, pt, occ);
         }
     }
 
@@ -551,8 +558,8 @@ namespace Juujfish {
         new_st->can_ep = false;
         new_st->ep_square = SQ_NONE;
 
-        if (st->can_ep)
-            new_st->zobrist_key ^= Zobrist::ep_file[file_of(st->ep_square)];
+        if (old_st->can_ep)
+            new_st->zobrist_key ^= Zobrist::ep_file[file_of(old_st->ep_square)];
 
         st = new_st;
 
@@ -566,9 +573,7 @@ namespace Juujfish {
 
         update_pinners_blockers();
 
-
         if (move_type == CASTLING) {
-            st->castling_rights &= ~(us == WHITE ? WHITE_CASTLING : BLACK_CASTLING);
             Square rto, rfrom;
             
             switch (cr) {
@@ -598,11 +603,10 @@ namespace Juujfish {
             st->major_key ^= Zobrist::psq[piece_of(us, ROOK)][rto];
 
             if (st->castling_rights & (us & KING_SIDE)) 
-                st->zobrist_key ^= us == WHITE ? Zobrist::castling_rights[0] : Zobrist::castling_rights[2];
+                st->zobrist_key ^= (us == WHITE ? Zobrist::castling_rights[0] : Zobrist::castling_rights[2]);
             if (st->castling_rights & (us & QUEEN_SIDE)) 
-                st->zobrist_key ^= us == WHITE ? Zobrist::castling_rights[1] : Zobrist::castling_rights[3];
+                st->zobrist_key ^= (us == WHITE ? Zobrist::castling_rights[1] : Zobrist::castling_rights[3]);
             
-
             st->castling_rights &= ~(us & ANY_CASTLING);
             
         } else if (move_type == ENPASSANT) {
@@ -643,54 +647,76 @@ namespace Juujfish {
                     File capture_file = file_of(to);
                     Rank capture_rank = rank_of(to);
                     
-                    if (capture_file == FILE_H && capture_rank == (them == WHITE ? RANK_1 : RANK_8)) {
+                    if (capture_file == FILE_H && 
+                        capture_rank == (them == WHITE ? RANK_1 : RANK_8) && 
+                        st->castling_rights & (them & KING_SIDE)) {
+
                         st->castling_rights &= ~(them & KING_SIDE);
                         st->zobrist_key ^= Zobrist::castling_rights[them == WHITE ? 0 : 2];
                     }
 
-                    if (capture_file == FILE_A && capture_rank == (them == WHITE ? RANK_1 : RANK_8)) {
+                    if (capture_file == FILE_A && 
+                        capture_rank == (them == WHITE ? RANK_1 : RANK_8) && 
+                        st->castling_rights & (them & QUEEN_SIDE)) {
+
                         st->castling_rights &= ~(them & QUEEN_SIDE);
                         st->zobrist_key ^= Zobrist::castling_rights[them == WHITE ? 1 : 3];
                     }
                 }
             }
 
+            Piece promotion_piece = piece_of(us, promotion_type);
+
             st->zobrist_key ^= Zobrist::psq[p][from];
-            st->zobrist_key ^= Zobrist::psq[piece_of(us, promotion_type)][to];
+            st->zobrist_key ^= Zobrist::psq[promotion_piece][to];
+
+            switch (type_of(promotion_piece)) {
+                case KNIGHT:
+                case BISHOP:
+                    st->minor_key ^= Zobrist::psq[promotion_piece][to];
+                    break;
+                case ROOK:
+                case QUEEN:
+                    st->major_key ^= Zobrist::psq[promotion_piece][to];
+                    break;
+                default:
+                    std::cerr << "Error: Promotion piece type is incorrect." << std::endl;
+                    return;
+            }
 
         } else if (move_type == NORMAL) {
 
             if (type_of(p) == ROOK) {
                 File rook_file = file_of(from);
                 Rank rook_rank = rank_of(from);
-                Rank starting_rook_rank = (us == WHITE ? RANK_1 : RANK_8);
-                if (rook_rank == starting_rook_rank) {
-                    if (rook_file == FILE_H && (st->castling_rights & (us & KING_SIDE)) != 0) {
+                if (rook_rank == (us == WHITE ? RANK_1 : RANK_8)) {
+                    if ((rook_file == FILE_H) && (st->castling_rights & (us & KING_SIDE))) {
                         st->castling_rights &= ~(us & KING_SIDE);
-                        st->zobrist_key ^= Zobrist::castling_rights[us == WHITE ? 0 : 2];
+                        st->zobrist_key ^= Zobrist::castling_rights[(us == WHITE ? 0 : 2)];
 
-                    } else if (rook_file == FILE_A && (st->castling_rights & (us & QUEEN_SIDE)) != 0) {
+                    } else if ((rook_file == FILE_A) && (st->castling_rights & (us & QUEEN_SIDE))) {
                         st->castling_rights &= ~(us & QUEEN_SIDE);
-                        st->zobrist_key ^= Zobrist::castling_rights[us == WHITE ? 1 : 3];
+                        st->zobrist_key ^= Zobrist::castling_rights[(us == WHITE ? 1 : 3)];
                     }
                 }
-            }
-
-            if (type_of(p) == KING) {
-                if ((st->castling_rights & (us == WHITE ? WHITE_OO : BLACK_OO)) != 0) {
-                    st->castling_rights &= ~(us == WHITE ? WHITE_OO : BLACK_OO);
+            } else if (type_of(p) == KING) {
+                if (st->castling_rights & (us & KING_SIDE)) {
                     st->zobrist_key ^= Zobrist::castling_rights[us == WHITE ? 0 : 2];
                 }
 
-                if ((st->castling_rights & (us == WHITE ? WHITE_OOO : BLACK_OOO)) != 0) {
-                    st->castling_rights &= ~(us == WHITE ? WHITE_OOO : BLACK_OOO);
+                if (st->castling_rights & (us & QUEEN_SIDE)) {
                     st->zobrist_key ^= Zobrist::castling_rights[us == WHITE ? 1 : 3];
                 }
-            }
 
-            if (type_of(p) == PAWN) {
+                st->castling_rights &= ~(us & ANY_CASTLING);
+
+            } else if (type_of(p) == PAWN) {
                 int to_rank = rank_of(to), from_rank = rank_of(from);
-                if ((to_rank - from_rank == 2 || to_rank - from_rank == -2) && (from_rank == RANK_2 || from_rank == RANK_7)) {
+
+                if ((to_rank - from_rank == 2 || to_rank - from_rank == -2) && 
+                    (from_rank == RANK_2 || from_rank == RANK_7) &&
+                    (pawn_attacks_bb(us, square_to_bb(Square(to - (us == WHITE ? 8 : -8)))) & pieces(them, PAWN)) ) {
+
                     File ep_file = file_of(to);
                     Square ep_square = square_of(ep_file, us == WHITE ? RANK_3 : RANK_6);
 
@@ -703,12 +729,14 @@ namespace Juujfish {
                 st->fifty_move_counter = 0;
             }
 
+            // Deals with normal captures
             if (capture_piece != NO_PIECE) {
                 st->zobrist_key ^= Zobrist::psq[capture_piece][to];
 
                 switch (type_of(capture_piece)) {
                     case PAWN:
                         st->pawn_key ^= Zobrist::psq[capture_piece][to];
+                        break;
                     case KNIGHT:
                     case BISHOP:
                         st->minor_key ^= Zobrist::psq[capture_piece][to];
@@ -729,12 +757,18 @@ namespace Juujfish {
                     File capture_file = file_of(to);
                     Rank capture_rank = rank_of(to);
                     
-                    if (capture_file == FILE_H && capture_rank == (them == WHITE ? RANK_1 : RANK_8)) {
+                    if (capture_file == FILE_H && 
+                        capture_rank == (them == WHITE ? RANK_1 : RANK_8) && 
+                        st->castling_rights & (them & KING_SIDE)) {
+
                         st->castling_rights &= ~(them & KING_SIDE);
                         st->zobrist_key ^= Zobrist::castling_rights[them == WHITE ? 0 : 2];
                     }
 
-                    if (capture_file == FILE_A && capture_rank == (them == WHITE ? RANK_1 : RANK_8)) {
+                    if (capture_file == FILE_A && 
+                        capture_rank == (them == WHITE ? RANK_1 : RANK_8) && 
+                        st->castling_rights & (them & QUEEN_SIDE)) {
+
                         st->castling_rights &= ~(them & QUEEN_SIDE);
                         st->zobrist_key ^= Zobrist::castling_rights[them == WHITE ? 1 : 3];
                     }
@@ -743,6 +777,25 @@ namespace Juujfish {
 
             st->zobrist_key ^= Zobrist::psq[p][from];
             st->zobrist_key ^= Zobrist::psq[p][to];
+
+            switch (type_of(p)) {
+                case PAWN:
+                    st->pawn_key ^= Zobrist::psq[p][from];
+                    st->pawn_key ^= Zobrist::psq[p][to];
+                    break;
+                case KNIGHT:
+                case BISHOP:
+                    st->minor_key ^= Zobrist::psq[p][from];
+                    st->minor_key ^= Zobrist::psq[p][to];
+                    break;
+                case ROOK:
+                case QUEEN:
+                    st->major_key ^= Zobrist::psq[p][from];
+                    st->major_key ^= Zobrist::psq[p][to];
+                    break;
+                default:
+                    break;
+            }
         }
 
         st->zobrist_key ^= Zobrist::black_to_move;
@@ -934,6 +987,57 @@ namespace Juujfish {
 
     bool Position::is_draw() const {
         return st->fifty_move_counter >= 100 || st->repetition >= 2;
+    }
+
+    Key Position::recompute_zobrist() const {
+        Key key = 0ULL;
+        key ^= get_side_to_move() == WHITE ? 0 : Zobrist::black_to_move;
+        for (Color c : {WHITE, BLACK}) {
+            for (PieceType pt : {PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING}) {
+                BitBoard bb = pieces(c, pt);
+                while (bb) {
+                    Square sq = Square(lsb(pop_lsb(bb)));
+                    key ^= Zobrist::psq[piece_of(c, pt)][sq];
+                }
+            }
+        }
+
+        for (Color c : {WHITE, BLACK}) {
+            if (st->castling_rights & (c & KING_SIDE)) {
+                key ^= c == WHITE ? Zobrist::castling_rights[0] : Zobrist::castling_rights[2];
+            }
+            if (st->castling_rights & (c & QUEEN_SIDE)) {
+                key ^= c == WHITE ? Zobrist::castling_rights[1] : Zobrist::castling_rights[3];
+            }
+        }
+
+        if (st->can_ep) {
+            key ^= Zobrist::ep_file[file_of(st->ep_square)];
+        }
+
+        return key;
+    }
+
+    Key Position::recompute_secondary() const {
+        Key key = 0ULL;
+
+        for (Color c : {WHITE, BLACK}) {
+            for (PieceType pt : {PAWN, KNIGHT, BISHOP, ROOK, QUEEN}) {
+                BitBoard bb = pieces(c, pt);
+                while (bb) {
+                    Square sq = Square(lsb(pop_lsb(bb)));
+                    if (pt == PAWN) {
+                        key ^= Zobrist::psq[piece_of(c, pt)][sq];
+                    } else if (pt == KNIGHT || pt == BISHOP) {
+                        key ^= Zobrist::psq[piece_of(c, pt)][sq];
+                    } else {
+                        key ^= Zobrist::psq[piece_of(c, pt)][sq];
+                    }
+                }
+            }
+        }
+
+        return key >> 48;
     }
 
 } // namespace Juujfish

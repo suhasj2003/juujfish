@@ -56,7 +56,7 @@ namespace Juujfish {
             for (size_t i = 1; i < BUCKET_SIZE; ++i) {
                 entry = &bucket->entries[i];
                 if (entry->is_occupied() && 
-                        replacement_score > (entry->get_depth() - relative_age(entry->get_age()))) {
+                    replacement_score > (entry->get_depth() - relative_age(entry->get_age()))) {
                     
                     replacement_score = (entry->get_depth() - relative_age(entry->get_age()));
                     replacement_entry = entry;

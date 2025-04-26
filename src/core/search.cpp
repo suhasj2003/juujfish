@@ -54,7 +54,7 @@ namespace Juujfish {
         StateInfo new_st;
         memset(&new_st, 0, sizeof(new_st));
 
-        MoveOrderer mo(pos, ply, &killer, &history, &butterfly);
+        MoveOrderer mo(pos, table_hit ? table_data.move : Move::null_move(), ply, &killer, &history, &butterfly);
         Move m = mo.next();
 
         while (!m.is_nullmove()) {

@@ -1,5 +1,5 @@
 CXX := g++
-CXXFLAGS := -std=c++17 -Wall -Wextra -O3 -ffast-math -march=native -flto -funroll-loops -fno-exceptions -fno-rtti -g
+CXXFLAGS := -std=c++17 -Wall -Wextra -O3 -ffast-math -march=native -flto -funroll-loops -fno-exceptions -fno-rtti -MMD -MP -DNDEBUG 
 SRC_DIR := src/core
 TARGET := chessengine.out
 SOURCES := $(wildcard $(SRC_DIR)/*.cpp)
@@ -12,7 +12,7 @@ $(TARGET): $(OBJECTS)
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
 $(SRC_DIR)/%.o: $(SRC_DIR)/%.cpp
-	$(CXX) $(CXXFLAGS) -MMD -MP -c $< -o $@
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 -include $(DEPENDS)
 

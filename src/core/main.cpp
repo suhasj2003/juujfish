@@ -1,10 +1,13 @@
 #include <iostream>
+#include <deque>
 #include <chrono>
 
 #include "types.h"
 #include "bitboard.h"
 #include "position.h"
 #include "movegen.h"
+#include "moveorder.h"
+#include "heuristic.h"
 #include "search.h"
 #include "evaluation.h"
 #include "transposition.h"
@@ -29,13 +32,13 @@ uint64_t perft(Position &pos, int depth, int d, TranspositionTable *tt) {
         std::cerr << "Error: Secondary key mismatch!" << std::endl;
     }
 
-    auto [tt_hit, tt_data, tt_writer] = tt->probe(pos.get_key(), pos.generate_secondary_key());
+    // auto [tt_hit, tt_data, tt_writer] = tt->probe(pos.get_key(), pos.generate_secondary_key());
 
-    if (tt_hit && tt_data.depth == depth) {
-        hash_hits++;
-        if (tt_data.score >= 0)
-            return tt_data.score;
-    }
+    // if (tt_hit && tt_data.depth == depth) {
+    //     hash_hits++;
+    //     if (tt_data.score >= 0)
+    //         return tt_data.score;
+    // }
 
     if (pos.is_in_check()) {
         for (auto m : MoveList<EVASIONS>(pos)) {
@@ -78,11 +81,11 @@ uint64_t perft(Position &pos, int depth, int d, TranspositionTable *tt) {
         }
     }
 
-    tt_writer.write(pos.get_key(), 
-                    pos.generate_secondary_key(), 
-                    depth, BOUND_EXACT, 
-                    num_positions > ((uint64_t) std::numeric_limits<int16_t>::max()) ? -1 : num_positions, 
-                    Move::null_move());
+    // tt_writer.write(pos.get_key(), 
+    //                 pos.generate_secondary_key(), 
+    //                 depth, BOUND_EXACT, 
+    //                 num_positions > ((uint64_t) std::numeric_limits<int16_t>::max()) ? -1 : num_positions, 
+    //                 Move::null_move());
 
     return num_positions;
 }

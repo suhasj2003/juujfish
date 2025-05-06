@@ -77,14 +77,14 @@
             }
         }
 
-        constexpr BitBoard get_ray(Square src, Square dest) {
+        inline BitBoard get_ray(Square src, Square dest) {
             Direction d = get_direction(dest, src);
             int idx = direction_to_index(d);
             assert(idx >= 0 && idx <= 7);
             return RaysBB[src][idx];
         }
 
-        constexpr BitBoard get_ray(Square src, Direction d) {
+        inline BitBoard get_ray(Square src, Direction d) {
             int idx = direction_to_index(d);
             return RaysBB[src][idx];
         }

@@ -34,7 +34,6 @@ namespace Juujfish {
 
     void Position::set(const std::string& fen, StateInfo *new_st) {
         // 0. Reset position and read FEN
-
         std::memset(this, 0, sizeof(Position));
         std::memset(new_st, 0, sizeof(StateInfo));
         st = new_st;
@@ -166,16 +165,6 @@ namespace Juujfish {
 
         Square king_sq = lsb(pieces(us, KING));
 
-        if (p == NO_PIECE) { 
-            Position p_copy;
-            p_copy.copy(*this);
-            std::cout << pretty(p_copy) << std::endl;
-            std::cout << moveToString(m) << std::endl;
-            std::cout << get_key() << std::endl;
-            std::cout << recompute_zobrist() << std::endl;
-            std::cout << generate_secondary_key() << std::endl;
-            std::cout << recompute_secondary() << std::endl;
-        }
         assert(p != NO_PIECE);
 
         if (mt == CASTLING) {
@@ -212,9 +201,6 @@ namespace Juujfish {
 
         Square king_sq = lsb(pieces(them, KING));
 
-        if (color_of(p) != us) {
-            std::cout << moveToString(m) << "   " << color_of(p) << "   " << us << std::endl;
-        }
         assert(color_of(p) == us);
 
         if (get_check_squares(pt) & to)
@@ -811,11 +797,9 @@ namespace Juujfish {
         assert(c == WHITE || c == BLACK);
         assert(is_square(to) && is_square(from) && is_square(rto) && is_square(rfrom));
 
-        Piece k = piece_at(from);
-        assert(type_of(k) == KING && color_of(k) == c);
+        assert(type_of(piece_at(from)) == KING && color_of(piece_at(from)) == c);
 
-        Piece r = piece_at(rfrom);
-        assert(type_of(r) == ROOK && color_of(r) == c);
+        assert(type_of(piece_at(rfrom)) == ROOK && color_of(piece_at(rfrom)) == c);
 
         remove_piece(from);
         set_piece(c, KING, to);
@@ -828,10 +812,8 @@ namespace Juujfish {
         assert(c == WHITE || c == BLACK);
         assert(is_square(to) && is_square(from) && is_square(capture_sq));
 
-        Piece p = piece_at(from);
-        Piece capture_p = piece_at(capture_sq);
-        assert(type_of(p) == PAWN && color_of(p) == c);
-        assert(type_of(capture_p) == PAWN && color_of(capture_p) == (~c));
+        assert(type_of(piece_at(from)) == PAWN && color_of(piece_at(from)) == c);
+        assert(type_of(piece_at(capture_sq)) == PAWN && color_of(piece_at(capture_sq)) == (~c));
 
         assert(capture_sq == Square(to + (c == WHITE ? -8 : 8)));
 
@@ -849,8 +831,7 @@ namespace Juujfish {
                promotion_type == ROOK || 
                promotion_type == QUEEN);
 
-        Piece p = piece_at(from);
-        assert(type_of(p) == PAWN && color_of(p) == c);
+        assert(type_of(piece_at(from)) == PAWN && color_of(piece_at(from)) == c);
 
         remove_piece(from);
         set_piece(c, promotion_type, to);

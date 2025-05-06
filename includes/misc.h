@@ -1,6 +1,7 @@
 #ifndef MISC_H
     #define MISC_H
 
+    #include <array>
     #include <iostream>
 
     #include "types.h"

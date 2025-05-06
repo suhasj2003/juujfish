@@ -5,6 +5,7 @@
     #include "bitboard.h"
 
     #include <iostream>
+    #include <cstring>
 
     namespace Juujfish {
 

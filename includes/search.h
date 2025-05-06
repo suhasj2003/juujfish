@@ -23,9 +23,8 @@
                 
                 void init(TranspositionTable *tt, int write, int rewrite); 
 
-                template<bool RootNode> 
+                template<bool RootNode>
                 Value search(Position &pos, Value alpha, Value beta, uint8_t depth);
-                // Value search(Position &pos, int depth);
 
                 inline Move get_best_move() { return best_move; }
                 inline int get_transpositions() const { return transpositions; }

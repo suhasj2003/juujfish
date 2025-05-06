@@ -12,13 +12,14 @@
         constexpr int HISTORY_MAX = 8192;
         constexpr int BUTTERFLY_MAX = 1024;
 
+
         // Interface for different heuristics used in move ordering
         class Heuristic {
             public:
                 virtual ~Heuristic() = default;
 
-                virtual void init();
-                virtual void clear();
+                virtual void init() {}
+                virtual void clear() {}
         };
 
         class KillerHeuristic : public Heuristic {

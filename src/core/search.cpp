@@ -16,6 +16,15 @@ namespace Juujfish {
         tt_rewrote = rewrite;
     }
 
+    Value Worker::iterative_deepening(Position &pos) {
+        Value score = 0;
+        Depth d;
+        for (d = 1; d <= searched_depth; d++) {
+            score = search<true>(pos, -VALUE_INFINITE, VALUE_INFINITE, d);
+        }
+        return score;
+    }
+
     template<bool RootNode>
     Value Worker::search(Position &pos, Value alpha, Value beta, uint8_t depth) {
         Value best_score = -VALUE_INFINITE;

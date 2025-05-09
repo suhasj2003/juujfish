@@ -23,6 +23,8 @@
                 
                 void init(TranspositionTable *tt, int write, int rewrite); 
 
+                Value iterative_deepening(Position &pos);
+
                 template<bool RootNode>
                 Value search(Position &pos, Value alpha, Value beta, uint8_t depth);
 

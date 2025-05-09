@@ -105,8 +105,8 @@ void game() {
     std::cout << pretty(p) << std::endl;
 
     srand(time(NULL));
-    Color ENGINE = Color(rand() & 1);
-    // Color ENGINE = WHITE;
+    // Color ENGINE = Color(rand() & 1);
+    Color ENGINE = WHITE;
     // Color ENGINE = BLACK;
 
     TranspositionTable tt;
@@ -163,12 +163,17 @@ void game() {
             std::cout << std::endl;
             std::cout << "Search execution time: " << (double) duration.count() / 1000 << " seconds" << std::endl << std::endl;
 
-            if (score == VALUE_DRAW || std::abs(score) == (VALUE_MATE - 1))
+            if ((score == VALUE_DRAW && (p.is_draw() || MoveList<LEGAL>(p).size() == 0)) || (score == (VALUE_MATE - 1)))
                 mate_or_draw = true;
 
         } else {
             std::cout << "Enter move: " << std::endl;
             std::cin >> input;
+
+            if (input == "undo") {
+                p.unmake_move();
+                p.unmake_move();
+            }
 
             Move m = parseMove(p, input);
 
@@ -237,7 +242,7 @@ void self_game() {
 
 
             auto start = std::chrono::high_resolution_clock::now();
-            score = w.search<true>(p, -VALUE_INFINITE, VALUE_INFINITE, w.get_searched_depth());
+            score = w.iterative_deepening(p);
             auto end = std::chrono::high_resolution_clock::now();
             auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 
@@ -272,7 +277,7 @@ void self_game() {
             std::cout << std::endl;
             std::cout << "Search execution time: " << (double) duration.count() / 1000 << " seconds" << std::endl << std::endl;
 
-            if (score == VALUE_DRAW || score == (VALUE_MATE - 1))
+            if ((score == VALUE_DRAW && (p.is_draw() || MoveList<LEGAL>(p).size() == 0)) || (score == (VALUE_MATE - 1)))
                 mate_or_draw = true;
 
         } else {
@@ -283,7 +288,7 @@ void self_game() {
 
 
             auto start = std::chrono::high_resolution_clock::now();
-            score = w.search<true>(p, -VALUE_INFINITE, VALUE_INFINITE, w.get_searched_depth());
+            score = w.iterative_deepening(p);
             auto end = std::chrono::high_resolution_clock::now();
             auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 
@@ -318,7 +323,7 @@ void self_game() {
             std::cout << std::endl;
             std::cout << "Search execution time: " << (double) duration.count() / 1000 << " seconds" << std::endl << std::endl;
 
-            if (score == VALUE_DRAW || score == (VALUE_MATE - 1))
+            if ((score == VALUE_DRAW && (p.is_draw() || MoveList<LEGAL>(p).size() == 0)) || (score == (VALUE_MATE - 1)))
                 mate_or_draw = true;
         }
     }

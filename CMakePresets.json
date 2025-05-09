@@ -2,7 +2,7 @@
     "version": 2,
     "configurePresets": [
         {
-            "name": "debug",
+            "name": "make_debug",
             "displayName": "Debug",
             "binaryDir": "${sourceDir}/build",
             "generator": "Unix Makefiles",
@@ -13,7 +13,7 @@
             }
         },
         {
-            "name": "release",
+            "name": "make_release",
             "displayName": "Release",
             "binaryDir": "${sourceDir}/build",
             "generator": "Unix Makefiles",
@@ -21,6 +21,28 @@
                 "CMAKE_BUILD_TYPE": "Release",
                 "CMAKE_CXX_FLAGS_RELEASE": "-Wall -Wextra -O3 -ffast-math -march=native -flto -funroll-loops -fno-exceptions -fno-rtti -DNDEBUG"
             }
+        },
+        {
+            "name": "ninja_debug",
+            "displayName": "Debug",
+            "binaryDir": "${sourceDir}/build",
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+                "CMAKE_CXX_FLAGS_DEBUG": "-Wall -Wextra -O3 -ffast-math -march=native -flto -funroll-loops -fno-exceptions -fno-rtti -g"
+            }
+        },
+        {
+            "name": "ninja_release",
+            "displayName": "Release",
+            "binaryDir": "${sourceDir}/build",
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_CXX_FLAGS_RELEASE": "-Wall -Wextra -O3 -ffast-math -march=native -flto -funroll-loops -fno-exceptions -fno-rtti -DNDEBUG"
+            }
         }
+
     ]
 }

@@ -3,6 +3,7 @@
 
     #include <array>
     #include <iostream>
+    #include <string>
 
     #include "types.h"
     #include "bitboard.h"

@@ -24,13 +24,13 @@ uint64_t perft(Position &pos, int depth, int d, TranspositionTable *tt) {
     uint64_t num_positions = 0;
     StateInfo st;
 
-    if (pos.get_key() != pos.recompute_zobrist()) {
+   /* if (pos.get_key() != pos.recompute_zobrist()) {
         std::cerr << "Error: Zobrist key mismatch!" << std::endl;
     }
 
     if (pos.generate_secondary_key() != pos.recompute_secondary()) {
         std::cerr << "Error: Secondary key mismatch!" << std::endl;
-    }
+    }*/
 
     // auto [tt_hit, tt_data, tt_writer] = tt->probe(pos.get_key(), pos.generate_secondary_key());
 
@@ -121,7 +121,7 @@ void game() {
         std::string input;
 
         if (p.get_side_to_move() == ENGINE) {
-            Worker w;
+            Search::Worker w;
             w.init(&tt, write, rewrite);
 
             w.set_searched_depth(fixed_depth);
@@ -223,20 +223,20 @@ void self_game() {
     Color ENGINE1 = WHITE;
     Color ENGINE2 = BLACK;
 
-    TranspositionTable tt;
+    TranspositionTable *tt = new TranspositionTable;
 
     int write = 0;
     int rewrite = 0;
 
-    tt.init();
-    tt.clear();
+    tt->init();
+    tt->clear();
 
     while (!mate_or_draw) {
         std::string input;
 
         if (p.get_side_to_move() == ENGINE1) {
-            Worker w;
-            w.init(&tt, write, rewrite);
+            Search::Worker w;
+            w.init(tt, write, rewrite);
 
             w.set_searched_depth(fixed_depth);
 
@@ -281,8 +281,8 @@ void self_game() {
                 mate_or_draw = true;
 
         } else {
-            Worker w;
-            w.init(&tt, write, rewrite);
+            Search::Worker w;
+            w.init(tt, write, rewrite);
 
             w.set_searched_depth(fixed_depth);
 
@@ -337,6 +337,8 @@ void self_game() {
         std::cerr << "Error: Neither checkmate or draw." << std::endl;
     }
 
+    delete tt;
+
 }
 
 
@@ -351,7 +353,7 @@ int main()
     self_game();
 
 
-    // TranspositionTable tt;
+     //TranspositionTable tt;
 
     // tt.init();
 
@@ -367,40 +369,40 @@ int main()
 
 
 
+    //Position p;
 
+    //auto states = new std::deque<StateInfo>(1);
 
-    // Position p;
-
-    // auto states = new std::deque<StateInfo>(1);
-
-    // // p.set("rnbqkbnr/pppppppp/8/8/8/7N/PPPPPPPP/RNBQKB1R b KQkq - 0 1", &states->back());
-    // p.set("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", &states->back());
+    ////// // p.set("rnbqkbnr/pppppppp/8/8/8/7N/PPPPPPPP/RNBQKB1R b KQkq - 0 1", &states->back());
+    //p.set("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", &states->back());
    
 
-    // while (true) {
-    //     std::cout << "Enter depth: ";
+    //while (true) {
+    //    std::cout << "Enter depth: " << std::flush;
 
-    //     int depth;
-    //     std::cin >> depth;
-    //     std::cout << std::endl;
+    //    int depth;
+    //    if (!(std::cin >> depth)) {
+    //        std::cin.clear();
+    //        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    //        std::cerr << "Invalid input. Try again.\n";
+    //        continue;
+    //    }
+    //    std::cout << std::endl;
 
-    //     TranspositionTable tt;
+    //    hash_hits = 0;
 
-    //     tt.init();
-    //     tt.clear();
+    //    auto start = std::chrono::high_resolution_clock::now();
+    //    uint64_t total_positions = perft(p, depth, depth, NULL);
+    //    auto end = std::chrono::high_resolution_clock::now();
+    //    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    //
+    //    std::cout << '\n' << "Perft execution time: " << duration.count() << " milliseconds" << '\n';
+    //    std::cout << '\n' << "Number of positions at depth: " << depth << ": " << total_positions << '\n';
+    //    std::cout << '\n' << "MNPs: " << (total_positions / duration.count()) / 1000 << '\n';
+    //    std::cout << '\n' << "Hash hits: " << hash_hits << '\n' << std::endl;
+    //}
 
-    //     hash_hits = 0;
-
-    //     auto start = std::chrono::high_resolution_clock::now();
-    //     uint64_t total_positions = perft(p, depth, depth, &tt);
-    //     auto end = std::chrono::high_resolution_clock::now();
-    //     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    
-    //     std::cout << std::endl << "Perft execution time: " << duration.count() << " milliseconds" << std::endl;
-    //     std::cout << std::endl << "Number of positions at depth: " << depth << ": " << total_positions << std::endl;
-    //     std::cout << std::endl << "MNPs: " << (total_positions / duration.count()) / 1000 << std::endl;
-    //     std::cout << std::endl << "Hash hits: " << hash_hits << std::endl << std::endl;
-    // }
+    //delete states;
     
     return 0;
 

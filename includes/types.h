@@ -142,6 +142,7 @@
         constexpr Value VALUE_DRAW = 0;
         constexpr Value VALUE_MATE = 30000;
         constexpr Value VALUE_INFINITE = 32001;
+        constexpr Value VALUE_SEARCH_ABORTED = 32002;
 
         enum PieceType {
             NO_PIECE_TYPE = -1, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING, 

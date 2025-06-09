@@ -1,34 +1,67 @@
 #ifndef THREAD_H
     #define THREAD_H
 
-    #include <pthread.h>
+    #include <condition_variable>
+    #include <mutex>
+    #include <functional>
+    #include <memory>
+
+    #include "systhread.h"
+    #include "search.h"
+    #include "transposition.h"
 
     namespace Juujfish {
+        
+        const int DEFAULT_NUM_THREADS = 8;  // Default number of threads to use
 
-        // pthread wrapper that sets thread stack size to 8MB for Windows and MacOS (default is 512KB)
-        class SystemThread {
-            public:
-                template<class Function, class... Args>
-                SystemThread(Function &&fun, Args &&... args) {
-                    pthread_attr_init(attrp);
-                    pthread_attr_setstacksize(attrp, 8 * 1024 * 1024); // 8MB
+        struct SharedData {
+            TranspositionTable tt_table;
+        };
 
-                    pthread_create(&thread, attrp, [](void *arg) -> void* {
-                        auto f = static_cast<std::function<void()>*>(arg);
-                        (*f)();
-                        delete f;
-                        return nullptr;
-                    }, new std::function<void()>(std::bind(std::forward<Function>(fun), std::forward<Args>(args)...)));
-                }
+        struct Stack {
+            
+        };
 
-                
-                
+        class Thread {
+            Thread();
+            ~Thread();
+
+            void dispatch_job(std::function<void()> task);
+
+            void start_searching();
+            void wait_for_search_finish();
 
             private:
-                pthread_t thread;
-                pthread_attr_t attr, *attrp = &attr;
+                std::unique_ptr<Search::Worker> worker;
+
+                SysThread sys_thread;
+                std::condition_variable cv;
+                std::mutex mtx;
+
+                int thread_id, num_threads;
+                bool running = true;
+                std::function<void()> job_func;
+
+                void loop();
+        };
+
+        class ThreadPool {
+            public:
+                ThreadPool(int num_threads = DEFAULT_NUM_THREADS);
+                ~ThreadPool();
+                
+                void start_thinking();
+
+                void wait_for_all_threads();
+
+            private:
+                std::vector<std::unique_ptr<Thread>> threads;
+
+                void start_searching();
+               
         };
         
     } // namespace Juujfish
 
 #endif // ifndef THREAD_H
+    

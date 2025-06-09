@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 REM Default values
-set "CMAKE_PRESET=release"
+set "CMAKE_PRESET=ninja-release"
 set "RUN_ENGINE=true"
 
 REM Get the root directory (current dir)
@@ -13,7 +13,7 @@ REM Parse arguments
 :parse_args
 for %%A in (%*) do (
     if "%%A"=="-d" (
-        set "CMAKE_PRESET=debug"
+        set "CMAKE_PRESET=ninja-debug"
     ) else if "%%A"=="-c" (
         set "RUN_ENGINE=false"
     )
@@ -37,7 +37,7 @@ if errorlevel 1 (
 
 REM Build the executable
 echo Building the executable...
-make >nul
+ninja >nul
 if errorlevel 1 (
     echo [ERROR] Build failed.
     popd
@@ -48,9 +48,9 @@ popd
 REM Run the engine
 if "%RUN_ENGINE%"=="true" (
     echo Running the engine...
-    "%BUILD_DIR%\chessengine.out"
+    "chessengine.exe"
 ) else (
-    echo Build completed. You can run the engine with build\chessengine.out
+    echo Build completed. You can run the engine with chessengine.exe
 )
 
 endlocal

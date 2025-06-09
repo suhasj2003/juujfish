@@ -2,45 +2,49 @@
     "version": 2,
     "configurePresets": [
         {
-            "name": "make_debug",
+            "name": "make-debug",
             "displayName": "Debug",
             "binaryDir": "${sourceDir}/build",
             "generator": "Unix Makefiles",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-                "CMAKE_CXX_FLAGS_DEBUG": "-Wall -Wextra -O3 -ffast-math -march=native -flto -funroll-loops -fno-exceptions -fno-rtti -g"
+                "CMAKE_CXX_COMPILER": "clang++",
+                "CMAKE_CXX_FLAGS_DEBUG": "-Wall -Wextra -O3 -ffast-math -march=native -flto -funroll-loops -fno-exceptions -fno-rtti -g -D__OSX__"
             }
         },
         {
-            "name": "make_release",
+            "name": "make-release",
             "displayName": "Release",
             "binaryDir": "${sourceDir}/build",
             "generator": "Unix Makefiles",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
-                "CMAKE_CXX_FLAGS_RELEASE": "-Wall -Wextra -O3 -ffast-math -march=native -flto -funroll-loops -fno-exceptions -fno-rtti -DNDEBUG"
+                "CMAKE_CXX_COMPILER": "clang++",
+                "CMAKE_CXX_FLAGS_RELEASE": "-Wall -Wextra -O3 -ffast-math -march=native -flto -funroll-loops -fno-exceptions -fno-rtti -DNDEBUG -D__OSX__"
             }
         },
         {
-            "name": "ninja_debug",
+            "name": "ninja-debug",
             "displayName": "Debug",
             "binaryDir": "${sourceDir}/build",
             "generator": "Ninja",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+                "CMAKE_CXX_COMPILER": "clang++",
                 "CMAKE_CXX_FLAGS_DEBUG": "-Wall -Wextra -O3 -ffast-math -march=native -flto -funroll-loops -fno-exceptions -fno-rtti -g"
             }
         },
         {
-            "name": "ninja_release",
+            "name": "ninja-release",
             "displayName": "Release",
             "binaryDir": "${sourceDir}/build",
             "generator": "Ninja",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
-                "CMAKE_CXX_FLAGS_RELEASE": "-Wall -Wextra -O3 -ffast-math -march=native -flto -funroll-loops -fno-exceptions -fno-rtti -DNDEBUG"
+                "CMAKE_CXX_COMPILER": "clang++",
+                "CMAKE_CXX_FLAGS_RELEASE": "-Wall -Wextra -O3 -ffast-math -mavx2 -flto -funroll-loops -fno-exceptions -fno-rtti -DNDEBUG"
             }
         }
 

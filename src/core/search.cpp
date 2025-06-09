@@ -2,7 +2,7 @@
 
 namespace Juujfish {
 
-    void Worker::init(TranspositionTable *tt, int write, int rewrite) {
+    void Search::Worker::init(TranspositionTable *tt, int write, int rewrite) {
         best_move = Move(0);
 
         killer.init();
@@ -16,7 +16,7 @@ namespace Juujfish {
         tt_rewrote = rewrite;
     }
 
-    Value Worker::iterative_deepening(Position &pos) {
+    Value Search::Worker::iterative_deepening(Position &pos) {
         Value score = 0;
         Depth d;
         for (d = 1; d <= searched_depth; d++) {
@@ -26,7 +26,7 @@ namespace Juujfish {
     }
 
     template<bool RootNode>
-    Value Worker::search(Position &pos, Value alpha, Value beta, uint8_t depth) {
+    Value Search::Worker::search(Position &pos, Value alpha, Value beta, uint8_t depth) {
         Value best_score = -VALUE_INFINITE;
         Value score = 0;
 
@@ -124,7 +124,7 @@ namespace Juujfish {
     }
 
 
-    template Value Worker::search<true>(Position &pos, Value alpha, Value beta, uint8_t depth);
-    template Value Worker::search<false>(Position &pos, Value alpha, Value beta, uint8_t depth);
+    template Value Search::Worker::search<true>(Position &pos, Value alpha, Value beta, uint8_t depth);
+    template Value Search::Worker::search<false>(Position &pos, Value alpha, Value beta, uint8_t depth);
 
 } // namespace Juujfish

@@ -3,7 +3,7 @@
 set -e
 
 # Variables
-CMAKE_PRESET="release"
+CMAKE_PRESET="make-release"
 RUN_ENGINE=true
 
 ROOT_DIR=$(pwd)
@@ -12,7 +12,7 @@ BUILD_DIR="$ROOT_DIR/build"
 # Check for debug mode or compile only flags
 for arg in "$@"; do
     if [[ $arg == "-d" ]]; then
-        CMAKE_PRESET="debug"
+        CMAKE_PRESET="make-debug"
     elif [[ $arg == "-c" ]]; then
         RUN_ENGINE=false
     fi

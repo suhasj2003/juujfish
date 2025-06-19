@@ -46,6 +46,10 @@
             std::memcpy(dest, src, sizeof(struct StateInfo));   
         }
 
+
+        using StatesDeque = std::deque<StateInfo>;
+
+
         class Position {
             public:
                 static void init();

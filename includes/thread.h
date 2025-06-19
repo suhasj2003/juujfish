@@ -7,6 +7,7 @@
     #include <memory>
 
     #include "systhread.h"
+    #include "position.h"
     #include "search.h"
     #include "transposition.h"
 
@@ -23,26 +24,29 @@
         };
 
         class Thread {
-            Thread();
+          public:
+            Thread(int thread_id);
             ~Thread();
+
+            void clear();
 
             void dispatch_job(std::function<void()> task);
 
             void start_searching();
             void wait_for_search_finish();
 
-            private:
-                std::unique_ptr<Search::Worker> worker;
+          private:
+            std::unique_ptr<Search::Worker> worker;
 
-                SysThread sys_thread;
-                std::condition_variable cv;
-                std::mutex mtx;
+            int _thread_id, _num_threads;
+            bool running = true, searching = false;
+            std::function<void()> job_func;
+                
+            SysThread               sys_thread;
+            std::condition_variable cv;
+            std::mutex              mtx;
 
-                int thread_id, num_threads;
-                bool running = true;
-                std::function<void()> job_func;
-
-                void loop();
+            void loop();
         };
 
         class ThreadPool {
@@ -50,12 +54,19 @@
                 ThreadPool(int num_threads = DEFAULT_NUM_THREADS);
                 ~ThreadPool();
                 
-                void start_thinking();
+                void clear();
+                void set(int num_threads);
+
+                void start_thinking(Position &pos, StatesDeque &states);
 
                 void wait_for_all_threads();
 
+                Thread* main_thread() { return threads.front().get(); }
+
             private:
                 std::vector<std::unique_ptr<Thread>> threads;
+                
+                StatesDeque states;  
 
                 void start_searching();
                
@@ -64,4 +75,3 @@
     } // namespace Juujfish
 
 #endif // ifndef THREAD_H
-    

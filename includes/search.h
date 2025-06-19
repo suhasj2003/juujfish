@@ -23,7 +23,8 @@
                       Worker(Worker& w) = delete;
 
                       void init(TranspositionTable* tt, int write, int rewrite);
-
+		      void clear(); 
+		      void start_searching();
                       Value iterative_deepening(Position& pos);
 
                       template <bool RootNode>
@@ -42,6 +43,8 @@
                       inline void set_searched_depth(uint8_t d) { searched_depth = d; }
 
                  private:
+		      Position root_pos;
+
                       uint8_t searched_depth;
                       Move best_move;
 

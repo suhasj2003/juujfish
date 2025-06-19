@@ -23,9 +23,8 @@
                     }, new std::function<void()>(std::bind(std::forward<Function>(fun), std::forward<Args>(args)...)));
             }
 
-            void* join(void* ptr) {
-                pthread_join(thread, ptr);
-                return ptr;
+            void join() {
+                pthread_join(thread, nullptr);
             }
 
         private:

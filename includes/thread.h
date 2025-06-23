@@ -1,77 +1,74 @@
 #ifndef THREAD_H
-    #define THREAD_H
+#define THREAD_H
 
-    #include <condition_variable>
-    #include <mutex>
-    #include <functional>
-    #include <memory>
+#include <condition_variable>
+#include <functional>
+#include <memory>
+#include <mutex>
 
-    #include "systhread.h"
-    #include "position.h"
-    #include "search.h"
-    #include "transposition.h"
+#include "position.h"
+#include "search.h"
+#include "systhread.h"
+#include "transposition.h"
 
-    namespace Juujfish {
-        
-        const int DEFAULT_NUM_THREADS = 8;  // Default number of threads to use
+namespace Juujfish {
 
-        struct SharedData {
-            TranspositionTable tt_table;
-        };
+const int DEFAULT_NUM_THREADS = 8;  // Default number of threads to use
 
-        struct Stack {
-            
-        };
+struct SharedData {
+  TranspositionTable tt_table;
+};
 
-        class Thread {
-          public:
-            Thread(int thread_id);
-            ~Thread();
+struct Stack {};
 
-            void clear();
+class Thread {
+ public:
+  Thread(int thread_id);
+  ~Thread();
 
-            void dispatch_job(std::function<void()> task);
+  void clear();
 
-            void start_searching();
-            void wait_for_search_finish();
+  void dispatch_job(std::function<void()> task);
 
-          private:
-            std::unique_ptr<Search::Worker> worker;
+  void start_searching();
+  void wait_for_search_finish();
 
-            int _thread_id, _num_threads;
-            bool running = true, searching = false;
-            std::function<void()> job_func;
-                
-            SysThread               sys_thread;
-            std::condition_variable cv;
-            std::mutex              mtx;
+ private:
+  std::unique_ptr<Search::Worker> worker;
 
-            void loop();
-        };
+  int _thread_id, _num_threads;
+  bool running = true, searching = false;
+  std::function<void()> job_func;
 
-        class ThreadPool {
-            public:
-                ThreadPool(int num_threads = DEFAULT_NUM_THREADS);
-                ~ThreadPool();
-                
-                void clear();
-                void set(int num_threads);
+  SysThread sys_thread;
+  std::condition_variable cv;
+  std::mutex mtx;
 
-                void start_thinking(Position &pos, StatesDeque &states);
+  void loop();
+};
 
-                void wait_for_all_threads();
+class ThreadPool {
+ public:
+  ThreadPool(int num_threads = DEFAULT_NUM_THREADS);
+  ~ThreadPool();
 
-                Thread* main_thread() { return threads.front().get(); }
+  void clear();
+  void set(int num_threads);
 
-            private:
-                std::vector<std::unique_ptr<Thread>> threads;
-                
-                StatesDeque states;  
+  void start(Position& rootPos, StatesDequePtr& initialStates);
 
-                void start_searching();
-               
-        };
-        
-    } // namespace Juujfish
+  void wait_for_all_threads();
 
-#endif // ifndef THREAD_H
+  Thread* main_thread() { return threads.front().get(); }
+
+ private:
+  std::vector<std::unique_ptr<Thread>> threads;
+
+  StatesDequePtr states;
+
+  void start_searching();
+};
+
+}  // namespace Juujfish
+
+#endif  // ifndef THREAD_H

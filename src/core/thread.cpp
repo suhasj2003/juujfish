@@ -2,109 +2,111 @@
 
 namespace Juujfish {
 
-  // Function implementations for Thread wrapper class
+// Function implementations for Thread wrapper class
 
-	Thread::Thread(int thread_id) : 
-    _thread_id(thread_id),
-    sys_thread(&Thread::loop, this) {
-    worker = std::make_unique<Search::Worker>();
+Thread::Thread(int thread_id)
+    : _thread_id(thread_id), sys_thread(&Thread::loop, this) {
+  worker = std::make_unique<Search::Worker>();
 
-		running = true;
-    searching = false;
-    job_func = nullptr;
-	}
+  running = true;
+  searching = false;
+  job_func = nullptr;
 
-	Thread::~Thread() {
-    running = false;
-    searching = false;
-    sys_thread.join();
-	}
+  wait_for_search_finish();
+}
 
-  void Thread::clear() {
-    worker->clear(); 
+Thread::~Thread() {
+  running = false;
+  searching = false;
+  sys_thread.join();
+}
+
+void Thread::clear() {
+  worker->clear();
+}
+
+void Thread::dispatch_job(std::function<void()> job) {
+  {
+    std::unique_lock<std::mutex> lock(mtx);
+    cv.wait(lock, [&] { return !searching; });
+    job_func = std::move(job);
   }
+  cv.notify_one();
+}
 
-	void Thread::dispatch_job(std::function<void()> job) {
-		{
-			std::unique_lock<std::mutex> lock(mtx);
-			cv.wait(lock, [&] { return !searching; });
-			job_func = std::move(job);
-		}
+void Thread::start_searching() {
+  assert(worker != nullptr);
+  dispatch_job([this] { worker->start_searching(); });
+}
+
+void Thread::wait_for_search_finish() {
+  {
+    std::unique_lock<std::mutex> lock(mtx);
+    cv.wait(lock, [&] { return !searching; });
+  }
+}
+
+void Thread::loop() {
+  while (running) {
+    std::unique_lock<std::mutex> lock(mtx);
     cv.notify_one();
+    searching = false;
+    cv.wait(lock, [&] { return searching; });
+
+    if (!running)
+      return;
+
+    std::function<void()> job = std::move(job_func);
+    job_func = nullptr;
+
+    if (job)
+      job();
   }
+}
 
-  void Thread::start_searching() {
-    assert(worker != nullptr);
-    dispatch_job([this] { worker->start_searching(); });
-  }  
+// Function implementations for ThreadPool class
 
-  void Thread::wait_for_search_finish() {
-    {
-      std::unique_lock<std::mutex> lock(mtx);
-      cv.wait(lock, [&] { return !searching; });
-    }
-  }
+ThreadPool::ThreadPool(int num_threads) {
+  threads.resize(num_threads);
 
-  void Thread::loop() {
-    while (running) {
-      std::unique_lock<std::mutex> lock(mtx);
-      cv.notify_one();
-      searching = false;
-      cv.wait(lock, [&] { return searching; });
+  for (int thread_id = 0; thread_id < num_threads; ++thread_id)
+    threads[thread_id] = std::make_unique<Thread>(thread_id);
+}
 
-      if (!running)
-        return;
-      
-      std::function<void()> job = std::move(job_func);
-      job_func = nullptr;
-      
-      if (job)
-        job();
-    }
-  }
+ThreadPool::~ThreadPool() {
+  wait_for_all_threads();
 
-  // Function implementations for ThreadPool class
+  clear();
+}
 
-  ThreadPool::ThreadPool(int num_threads) {
-    threads.resize(num_threads);
-    
-    for (int thread_id = 0; thread_id < num_threads; ++thread_id)
-         threads[thread_id] = std::make_unique<Thread>(thread_id);
+void ThreadPool::clear() {
+  for (auto&& thread : threads)
+    thread->clear();
+}
 
-  }
+void ThreadPool::set(int num_threads) {
+  wait_for_all_threads();
 
-  ThreadPool::~ThreadPool() {
-    wait_for_all_threads();
+  clear();
 
-    clear();
-  }
+  threads.resize(num_threads);
 
-  void ThreadPool::clear() {
-    for (auto&& thread : threads)
-      thread->clear();
-  }
+  for (int thread_id = 0; thread_id < num_threads; ++thread_id)
+    threads[thread_id] = std::make_unique<Thread>(thread_id);
+}
 
-  void ThreadPool::set(int num_threads) {
-    wait_for_all_threads();  
+void ThreadPool::wait_for_all_threads() {
+  for (auto&& thread : threads)
+    if (thread != threads.front())
+      thread->wait_for_search_finish();
+}
 
-    clear();
+void ThreadPool::start(Position& rootPos, StatesDequePtr& initialStates) {}
 
-    threads.resize(num_threads);
-    
-    for (int thread_id = 0; thread_id < num_threads; ++thread_id)
-         threads[thread_id] = std::make_unique<Thread>(thread_id);
+void ThreadPool::start_searching() {
+  for (auto&& thread : threads)
+    if (thread != threads.front())
+      thread->start_searching();
+}
 
-  }
-
-  void ThreadPool::wait_for_all_threads() {
-    for (auto&& thread : threads)
-      if (thread != threads.front())
-        thread->wait_for_search_finish();
-  }
-
-  void ThreadPool::start_thinking(Position &pos, StatesDeque &states) {
-    
-  }
-  
-
-} // namespace Juujfish
+}  // namespace Juujfish

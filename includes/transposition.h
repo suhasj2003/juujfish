@@ -1,136 +1,148 @@
 #ifndef TRANSPOSITION_H
-    #define TRANSPOSITION_H
+#define TRANSPOSITION_H
 
-    #include <iostream>
+#include <iostream>
 
-    #include "types.h"
-    #include "search.h"
+#include "search.h"
+#include "types.h"
 
-    namespace Juujfish {
+namespace Juujfish {
 
-        struct TableEntry;
-        struct TableData;
-        struct TableWriter;
+struct TableEntry;
+struct TableData;
+struct TableWriter;
 
-        constexpr size_t CACHE_LINE = 128;
-        constexpr size_t BUCKET_SIZE = 8;
-        constexpr size_t HASH_SIZE = 30;
-        constexpr size_t TABLE_MEM_SIZE = 1 << HASH_SIZE; // 128 mb, must be a multiple of CACHE_LINE
+constexpr size_t CACHE_LINE = 128;
+constexpr size_t BUCKET_SIZE = 8;
+constexpr size_t HASH_SIZE = 30;
 
-        /*
-            zobrist_key - 8 bytes
-            second_key  - 2 bytes
-            depth       - 1 byte
-            bound       - 2 bits
-            age         - 6 bits
-            score       - 2 bytes
-            move        - 2 bytes
+// 128 mb, must be a multiple of CACHE_LINE
+constexpr size_t TABLE_MEM_SIZE = 1 << HASH_SIZE;
 
-            total       - 16 bytes
-        */
-        struct TableEntry {
-            public:
-                TableEntry(TableEntry *entry) {
-                    zobrist_key = entry->zobrist_key;
-                    second_key = entry->second_key;
-                    depth = entry->depth;
-                    bound_age = entry->bound_age;
-                    score = entry -> score;
-                    move = entry->move;
-                }
 
-                TableEntry() { memset(this, 0, sizeof(TableEntry)); }
 
-                inline Key      get_zobrist() const { return zobrist_key; }
-                inline int8_t   get_depth() const { return depth; }
-                inline uint8_t  get_age() const { return bound_age & ((1 << 6) - 1); }
-                inline Bound    get_bound() const { return Bound(bound_age >> 6); }
-                inline int16_t   get_score() const { return score; }
-                inline Move     get_move() const { return move; }
+/*
+zobrist_key - 8 bytes
+second_key  - 2 bytes
+depth       - 1 byte
+bound       - 2 bits
+age         - 6 bits
+score       - 2 bytes
+move        - 2 bytes
 
-                inline void clear() { memset(this, 0, sizeof(TableEntry)); }
-                inline bool is_occupied() const { return bool(depth); }
-                
+total       - 16 bytes
+*/
 
-                void save(Key zobrist_key, uint16_t second_key, int8_t depth, Bound b, uint8_t age, int16_t score, Move m);
+struct TableEntry {
+ public:
+  TableEntry(TableEntry* entry) {
+    zobrist_key = entry->zobrist_key;
+    second_key = entry->second_key;
+    depth = entry->depth;
+    bound_age = entry->bound_age;
+    score = entry->score;
+    move = entry->move;
+  }
 
-                friend struct TableBucket;
-            private:
-                Key      zobrist_key;
-                uint16_t second_key;
+  TableEntry() { memset(this, 0, sizeof(TableEntry)); }
 
-                int8_t depth;
+  inline Key get_zobrist() const { return zobrist_key; }
+  inline int8_t get_depth() const { return depth; }
+  inline uint8_t get_age() const { return bound_age & ((1 << 6) - 1); }
+  inline Bound get_bound() const { return Bound(bound_age >> 6); }
+  inline int16_t get_score() const { return score; }
+  inline Move get_move() const { return move; }
 
-                uint8_t bound_age;
-                int16_t score;
+  inline void clear() { memset(this, 0, sizeof(TableEntry)); }
+  inline bool is_occupied() const { return bool(depth); }
 
-                Move move;
-        };
+  void save(Key zobrist_key, uint16_t second_key, int8_t depth, Bound b,
+            uint8_t age, int16_t score, Move m);
 
-        struct TableData {
-            TableData(TableEntry *entry) 
-                    : zobrist_key(entry->get_zobrist()), depth(entry->get_depth()), 
-                        bound(entry->get_bound()), score(entry->get_score()),
-                        move(entry->get_move()) {}
+  friend struct TableBucket;
 
-            Key zobrist_key;
+ private:
+  Key zobrist_key;
+  uint16_t second_key;
 
-            int8_t depth;
+  int8_t depth;
 
-            Bound bound;
-            int16_t score;           
+  uint8_t bound_age;
+  int16_t score;
 
-            Move move;
-        };
+  Move move;
+};
 
-        struct TableWriter {
-            public:
-                TableWriter(TableEntry *entry, uint8_t age) {
-                    this->entry = entry;
-                    this->age = age;
-                }
+struct TableData {
+  TableData(TableEntry* entry)
+      : zobrist_key(entry->get_zobrist()),
+        depth(entry->get_depth()),
+        bound(entry->get_bound()),
+        score(entry->get_score()),
+        move(entry->get_move()) {}
 
-                inline void write(Key zobrist_key, uint16_t second_key, int8_t depth, Bound b, int16_t score, Move m) {
-                    entry->save(zobrist_key, second_key, depth, b, age, score, m);
-                }
+  Key zobrist_key;
 
-            private:
-                TableEntry *entry;
-                uint8_t age; 
-        };
+  int8_t depth;
 
-        struct TableBucket {
-            TableBucket() { memset(entries, 0, sizeof(TableEntry) * BUCKET_SIZE); }
-            size_t find_index(Key zobrist_key, uint16_t second_key) const;
+  Bound bound;
+  int16_t score;
 
-            TableEntry entries[BUCKET_SIZE];
-        };
+  Move move;
+};
 
-        class TranspositionTable {
-            public:
-                ~TranspositionTable() { delete[] table; }
+struct TableWriter {
+ public:
+  TableWriter(TableEntry* entry, uint8_t age) {
+    this->entry = entry;
+    this->age = age;
+  }
 
-                inline void init() {
-                    bucket_count = TABLE_MEM_SIZE / (BUCKET_SIZE * sizeof(TableEntry));
-                    table = new(std::align_val_t(CACHE_LINE)) TableBucket[bucket_count];
+  inline void write(Key zobrist_key, uint16_t second_key, int8_t depth, Bound b,
+                    int16_t score, Move m) {
+    entry->save(zobrist_key, second_key, depth, b, age, score, m);
+  }
 
-                    table_age = 0;
-                }
-                inline void clear() { memset(table, 0, TABLE_MEM_SIZE); }
-                inline void new_search() { table_age++; }
-                inline uint8_t get_age() const { return table_age; }
+ private:
+  TableEntry* entry;
+  uint8_t age;
+};
 
-                inline uint8_t relative_age(uint8_t entry_age) const { return table_age - entry_age; }
+struct TableBucket {
+  TableBucket() { memset(entries, 0, sizeof(TableEntry) * BUCKET_SIZE); }
+  size_t find_index(Key zobrist_key, uint16_t second_key) const;
 
-                std::tuple<bool, TableData, TableWriter> probe(Key zobrist_key, uint16_t second_key) const;
+  TableEntry entries[BUCKET_SIZE];
+};
 
-            private:
-                size_t bucket_count;
-                TableBucket *table;
+class TranspositionTable {
+ public:
+  ~TranspositionTable() { delete[] table; }
 
-                uint8_t table_age;
-        };
+  inline void init() {
+    bucket_count = TABLE_MEM_SIZE / (BUCKET_SIZE * sizeof(TableEntry));
+    table = new (std::align_val_t(CACHE_LINE)) TableBucket[bucket_count];
 
-    } // namespace Juujfish
+    table_age = 0;
+  }
+  inline void clear() { memset(table, 0, TABLE_MEM_SIZE); }
+  inline void new_search() { table_age++; }
+  inline uint8_t get_age() const { return table_age; }
 
-#endif // ifndef TRANSPOSITION_H
+  inline uint8_t relative_age(uint8_t entry_age) const {
+    return table_age - entry_age;
+  }
+
+  std::tuple<bool, TableData, TableWriter> probe(Key zobrist_key,
+                                                 uint16_t second_key) const;
+
+ private:
+  size_t bucket_count;
+  TableBucket* table;
+
+  uint8_t table_age;
+};
+
+}  // namespace Juujfish
+
+#endif  // ifndef TRANSPOSITION_H

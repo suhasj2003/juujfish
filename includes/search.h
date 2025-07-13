@@ -16,6 +16,7 @@ class TranspositionTable;
 
 enum NodeType : uint8_t { RootNode, PVNode, CutNode };
 
+#if 0
 namespace Search {
 class Worker {
  public:
@@ -63,6 +64,23 @@ class Worker {
   int tt_rewrote = 0;
 };
 }  // namespace Search
+#else
+
+namespace Search {
+  
+struct RootMove {
+  Move move;
+
+  Value score;
+  
+  Move pv[MAX_PLY + 1];
+};
+
+using RootMoves = std::vector<RootMove>;
+
+} // namespace Search
+
+#endif
 }  // namespace Juujfish
 
 #endif  // SEARCH_H

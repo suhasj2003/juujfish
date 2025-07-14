@@ -16,7 +16,7 @@ void Search::Worker::init(TranspositionTable* tt, int write, int rewrite) {
   tt_rewrote = rewrite;
 }
 
-Value Search::Worker::iterative_deepening(Position& pos) {
+Value Search::Worker::iterative_deepening() {
   Value score = 0;
   Depth d;
   for (d = 1; d <= searched_depth; d++) {

@@ -66,19 +66,52 @@ class Worker {
 }  // namespace Search
 #else
 
-namespace Search {
-  
 struct RootMove {
   Move move;
 
   Value score;
-  
-  Move pv[MAX_PLY + 1];
+  Depth searched_depth;
 };
 
 using RootMoves = std::vector<RootMove>;
 
-} // namespace Search
+namespace Search {
+
+class Worker {
+ public:
+  Worker() = default;
+  Worker(Worker& w) = delete;
+  Worker(TranspositionTable* tt) : tt(tt) {}
+
+  void clear();
+
+  void start_searching();
+
+ private:
+  Value iterative_deepening();
+
+  template <NodeType Nt>
+  Value search(Position& pos, Value alpha, Value beta, uint8_t depth);
+
+  Position root_pos;
+  Depth root_depth;
+
+  // Pricipal variation
+  Move pv[MAX_MOVES];
+
+  // Transposition table
+  TranspositionTable* tt;
+
+  // Move ordering heuristics
+  KillerHeuristic killer;
+  HistoryHeuristic history;
+  ButterflyHeuristic butterfly;
+
+  // Stats
+  std::atomic<std::uint64_t> nodes;
+};
+
+}  // namespace Search
 
 #endif
 }  // namespace Juujfish

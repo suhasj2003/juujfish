@@ -101,7 +101,9 @@ void ThreadPool::wait_for_all_threads() {
       thread->wait_for_search_finish();
 }
 
-void ThreadPool::start(Position& rootPos, StatesDequePtr& initialStates) {}
+void ThreadPool::start(Position& rootPos, StatesDequePtr& initialStates) {
+  
+}
 
 void ThreadPool::start_searching() {
   for (auto&& thread : threads)

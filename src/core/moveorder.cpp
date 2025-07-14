@@ -56,7 +56,7 @@ void MoveOrderer::score() {
     Piece p = pos.piece_at(from);
     PieceType pt = type_of(p);
 
-    if (Gt == CAPTURES) {
+    if constexpr (Gt == CAPTURES) {
       Piece capture_piece = pos.piece_at(to);
       PieceType capture_piece_type = type_of(capture_piece);
 
@@ -73,7 +73,7 @@ void MoveOrderer::score() {
         m.value = mvv_lva(capture_piece_type, pt);
       }
 
-    } else if (Gt == QUIETS) {
+    } else if constexpr (Gt == QUIETS) {
       int value = killers->lookup(m, ply) +
                   (history->lookup(m, us, pt) / butterfly->lookup(m, us));
 
@@ -94,7 +94,7 @@ void MoveOrderer::score() {
 
       m.value = value;
 
-    } else if (Gt == EVASIONS) {
+    } else if constexpr (Gt == EVASIONS) {
       if (pos.is_capture(m))
         m.value = PieceValue[type_of(pos.piece_at(to))] + (1 << 20);
       else

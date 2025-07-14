@@ -58,7 +58,7 @@ GradedMove* generate_pawn_moves(const Position& pos, GradedMove* move_list,
     }
   }
 
-  if (Gt == CAPTURES || Gt == EVASIONS || Gt == NON_EVASIONS) {
+  if constexpr (Gt == CAPTURES || Gt == EVASIONS || Gt == NON_EVASIONS) {
     BitBoard right_attack = shift<UP_RIGHT>(pawns_not_on_7) & enemies;
     BitBoard left_attack = shift<UP_LEFT>(pawns_not_on_7) & enemies;
 

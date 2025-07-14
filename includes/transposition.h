@@ -19,8 +19,6 @@ constexpr size_t HASH_SIZE = 30;
 // 128 mb, must be a multiple of CACHE_LINE
 constexpr size_t TABLE_MEM_SIZE = 1 << HASH_SIZE;
 
-
-
 /*
 zobrist_key - 8 bytes
 second_key  - 2 bytes
@@ -125,6 +123,7 @@ class TranspositionTable {
 
     table_age = 0;
   }
+
   inline void clear() { memset(table, 0, TABLE_MEM_SIZE); }
   inline void new_search() { table_age++; }
   inline uint8_t get_age() const { return table_age; }

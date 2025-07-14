@@ -19,8 +19,6 @@ struct SharedData {
   TranspositionTable tt_table;
 };
 
-struct Stack {};
-
 class Thread {
  public:
   Thread(int thread_id);
@@ -65,6 +63,7 @@ class ThreadPool {
   std::vector<std::unique_ptr<Thread>> threads;
 
   StatesDequePtr states;
+  TranspositionTable tt_table;
 
   void start_searching();
 };

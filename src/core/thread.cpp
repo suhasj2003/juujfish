@@ -102,7 +102,11 @@ void ThreadPool::wait_for_all_threads() {
 }
 
 void ThreadPool::start(Position& rootPos, StatesDequePtr& initialStates) {
+<<<<<<< HEAD
   
+=======
+
+>>>>>>> 4f89eee (update thread.cpp)
 }
 
 void ThreadPool::start_searching() {

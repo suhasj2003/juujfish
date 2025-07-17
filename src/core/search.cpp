@@ -140,6 +140,11 @@ void Search::Worker::start_searching() {
 
     tt->new_search();
     thread_pool.start_searching();
+
+    thread_pool.stop = true;
+    thread_pool.wait_for_all_threads();
+
+    
 }
 
 #endif

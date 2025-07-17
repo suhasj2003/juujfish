@@ -44,7 +44,7 @@ class Thread {
 
 class ThreadPool {
  public:
-  ThreadPool(int num_threads = DEFAULT_NUM_THREADS);
+  ThreadPool(int num_threads = DEFAULT_NUM_THREADS, TranspositionTable* tt);
   ~ThreadPool();
 
   void clear();
@@ -57,12 +57,13 @@ class ThreadPool {
 
   Thread* main_thread() { return threads.front().get(); }
 
- private:
-  std::vector<std::unique_ptr<Thread>> threads;
   std::atomic<bool> stop;
 
+ private:
+  std::vector<std::unique_ptr<Thread>> threads;
+  
   StatesDequePtr states;
-  TranspositionTable tt_table;
+  TranspositionTable* _tt;
 };
 
 }  // namespace Juujfish

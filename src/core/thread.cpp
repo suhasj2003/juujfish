@@ -66,11 +66,13 @@ void Thread::loop() {
 
 // Function implementations for ThreadPool class
 
-ThreadPool::ThreadPool(int num_threads) {
+ThreadPool::ThreadPool(int num_threads, TranspositionTable* tt) {
   threads.resize(num_threads);
 
   for (int thread_id = 0; thread_id < num_threads; ++thread_id)
     threads[thread_id] = std::make_unique<Thread>(thread_id);
+
+    _tt = tt;
 }
 
 ThreadPool::~ThreadPool() {
@@ -102,11 +104,7 @@ void ThreadPool::wait_for_all_threads() {
 }
 
 void ThreadPool::start(Position& rootPos, StatesDequePtr& initialStates) {
-<<<<<<< HEAD
   
-=======
-
->>>>>>> 4f89eee (update thread.cpp)
 }
 
 void ThreadPool::start_searching() {

@@ -2,19 +2,7 @@
 
 namespace Juujfish {
 
-void Search::Worker::init(TranspositionTable* tt, int write, int rewrite) {
-  best_move = Move(0);
-
-  killer.init();
-  history.init();
-  butterfly.init();
-
-  this->tt = tt;
-  this->tt->new_search();
-
-  tt_wrote = write;
-  tt_rewrote = rewrite;
-}
+#if 0
 
 Value Search::Worker::iterative_deepening() {
   Value score = 0;
@@ -133,5 +121,27 @@ template Value Search::Worker::search<true>(Position& pos, Value alpha,
                                             Value beta, uint8_t depth);
 template Value Search::Worker::search<false>(Position& pos, Value alpha,
                                              Value beta, uint8_t depth);
+
+#else
+
+void Search::Worker::clear() {
+    nodes = 0;
+
+    killer.clear();
+    history.clear();
+    butterfly.clear();
+}
+
+void Search::Worker::start_searching() {
+    if (!is_mainthread()) {
+        iterative_deepening();
+        return;
+    } 
+
+    tt->new_search();
+    thread_pool.start_searching();
+}
+
+#endif
 
 }  // namespace Juujfish

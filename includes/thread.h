@@ -13,15 +13,13 @@
 
 namespace Juujfish {
 
-const int DEFAULT_NUM_THREADS = 8;  // Default number of threads to use
+const int DEFAULT_NUM_THREADS = 8;
 
-struct SharedData {
-  TranspositionTable tt_table;
-};
+class ThreadPool;
 
 class Thread {
  public:
-  Thread(int thread_id);
+  Thread(ThreadPool& tp, int thread_id);
   ~Thread();
 
   void clear();
@@ -31,9 +29,8 @@ class Thread {
   void start_searching();
   void wait_for_search_finish();
 
- private:
   std::unique_ptr<Search::Worker> worker;
-
+ private:
   int _thread_id, _num_threads;
   bool running = true, searching = false;
   std::function<void()> job_func;
@@ -54,6 +51,7 @@ class ThreadPool {
   void set(int num_threads);
 
   void start(Position& rootPos, StatesDequePtr& initialStates);
+  void start_searching();
 
   void wait_for_all_threads();
 
@@ -61,11 +59,10 @@ class ThreadPool {
 
  private:
   std::vector<std::unique_ptr<Thread>> threads;
+  std::atomic<bool> stop;
 
   StatesDequePtr states;
   TranspositionTable tt_table;
-
-  void start_searching();
 };
 
 }  // namespace Juujfish

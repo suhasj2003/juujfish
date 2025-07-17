@@ -4,9 +4,9 @@ namespace Juujfish {
 
 // Function implementations for Thread wrapper class
 
-Thread::Thread(int thread_id)
+Thread::Thread(ThreadPool& tp, int thread_id)
     : _thread_id(thread_id), sys_thread(&Thread::loop, this) {
-  worker = std::make_unique<Search::Worker>();
+  worker = std::make_unique<Search::Worker>(tp, _thread_id);
 
   running = true;
   searching = false;

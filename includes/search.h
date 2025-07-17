@@ -8,11 +8,14 @@
 #include "moveorder.h"
 #include "position.h"
 #include "transposition.h"
+#include "thread.h"
 #include "types.h"
 
 namespace Juujfish {
 
+// Forward declarations
 class TranspositionTable;
+class ThreadPool;
 
 enum NodeType : uint8_t { RootNode, PVNode, CutNode };
 
@@ -75,15 +78,19 @@ struct RootMove {
 
 using RootMoves = std::vector<RootMove>;
 
+
+
 namespace Search {
 
 class Worker {
  public:
-  Worker() = default;
+  Worker(ThreadPool& tp, size_t thread_id)
+      : thread_pool(tp), _thread_id(thread_id) {}
   Worker(Worker& w) = delete;
-  Worker(TranspositionTable* tt) : tt(tt) {}
-
+  
   void clear();
+
+  bool is_mainthread() const { return _thread_id == 0; }
 
   void start_searching();
 
@@ -93,8 +100,13 @@ class Worker {
   template <NodeType Nt>
   Value search(Position& pos, Value alpha, Value beta, uint8_t depth);
 
-  Position root_pos;
-  Depth root_depth;
+  template <NodeType Nt>
+  Value qsearch(Position& pos, Value alpha, Value beta);
+
+  Position	root_pos;
+  StateInfo root_state;
+  Depth		root_depth;
+  RootMoves root_moves;
 
   // Pricipal variation
   Move pv[MAX_MOVES];
@@ -103,12 +115,18 @@ class Worker {
   TranspositionTable* tt;
 
   // Move ordering heuristics
-  KillerHeuristic killer;
-  HistoryHeuristic history;
-  ButterflyHeuristic butterfly;
+  KillerHeuristic		killer;
+  HistoryHeuristic		history;
+  ButterflyHeuristic	butterfly;
 
   // Stats
   std::atomic<std::uint64_t> nodes;
+
+  // Threads
+  ThreadPool& thread_pool;
+  size_t _thread_id;
+
+  friend class Juujfish::ThreadPool;
 };
 
 }  // namespace Search

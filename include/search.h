@@ -8,7 +8,6 @@
 #include "moveorder.h"
 #include "position.h"
 #include "transposition.h"
-#include "thread.h"
 #include "types.h"
 
 namespace Juujfish {
@@ -17,7 +16,7 @@ namespace Juujfish {
 class TranspositionTable;
 class ThreadPool;
 
-enum NodeType : uint8_t { RootNode, PVNode, CutNode };
+enum NodeType : uint8_t { RootNode, PV, NonPV };
 
 #if 0
 namespace Search {
@@ -70,15 +69,24 @@ class Worker {
 #else
 
 struct RootMove {
+  explicit RootMove(Move m) : move(m), score(-VALUE_INFINITE) {}
+
+  inline bool operator==(const Move& m) const { return move == m; }
+  inline bool operator<(const RootMove& m) const {
+    return score < m.score;
+  }
+  inline bool operator>(const RootMove& m) const {
+    return score > m.score;
+  }
+
   Move move;
 
+  Value mean_score_squared = -VALUE_INFINITE * -VALUE_INFINITE;
+
   Value score;
-  Depth searched_depth;
 };
 
 using RootMoves = std::vector<RootMove>;
-
-
 
 namespace Search {
 
@@ -87,25 +95,32 @@ class Worker {
   Worker(ThreadPool& tp, size_t thread_id)
       : thread_pool(tp), _thread_id(thread_id) {}
   Worker(Worker& w) = delete;
-  
+
   void clear();
 
   bool is_mainthread() const { return _thread_id == 0; }
 
   void start_searching();
 
+  // Temporary
+  Move get_best_move() const;
+  int get_nodes() const { return nodes.load(std::memory_order_relaxed); }
+
  private:
-  Value iterative_deepening();
+  void iterative_deepening();
 
   template <NodeType Nt>
-  Value search(Position& pos, Value alpha, Value beta, uint8_t depth);
+  Value search(Position& pos, Value alpha, Value beta, Depth depth,
+               bool cut_node);
 
-  template <NodeType Nt>
-  Value qsearch(Position& pos, Value alpha, Value beta);
+  // template <NodeType Nt>
+  // Value qsearch(Position& pos, Value alpha, Value beta);
 
-  Position	root_pos;
+  void copy_pv(Move* dest, const Move* src);
+
+  Position root_pos;
   StateInfo root_state;
-  Depth		root_depth;
+  Depth root_depth;
   RootMoves root_moves;
 
   // Pricipal variation
@@ -115,9 +130,9 @@ class Worker {
   TranspositionTable* tt;
 
   // Move ordering heuristics
-  KillerHeuristic		killer;
-  HistoryHeuristic		history;
-  ButterflyHeuristic	butterfly;
+  KillerHeuristic killer;
+  HistoryHeuristic history;
+  ButterflyHeuristic butterfly;
 
   // Stats
   std::atomic<std::uint64_t> nodes;

@@ -71,10 +71,14 @@ std::string Position::fen() const {
   if (st->castling_rights == NO_CASTLING) {
     fen_str += '-';
   } else {
-    if (st->castling_rights & WHITE_OO) fen_str += 'K';
-    if (st->castling_rights & WHITE_OOO) fen_str += 'Q';
-    if (st->castling_rights & BLACK_OO) fen_str += 'k';
-    if (st->castling_rights & BLACK_OOO) fen_str += 'q';
+    if (st->castling_rights & WHITE_OO)
+      fen_str += 'K';
+    if (st->castling_rights & WHITE_OOO)
+      fen_str += 'Q';
+    if (st->castling_rights & BLACK_OO)
+      fen_str += 'k';
+    if (st->castling_rights & BLACK_OOO)
+      fen_str += 'q';
   }
 
   // 4. En passant square

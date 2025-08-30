@@ -10,6 +10,7 @@
 #include "moveorder.h"
 #include "position.h"
 #include "search.h"
+#include "thread.h"
 #include "transposition.h"
 #include "types.h"
 
@@ -90,6 +91,7 @@ uint64_t perft(Position& pos, int depth, int d, TranspositionTable* tt) {
   return num_positions;
 }
 
+#if 0
 void game() {
 
   auto states = new std::deque<StateInfo>(1);
@@ -367,7 +369,12 @@ void self_game() {
   delete tt;
 }
 
+#endif
+
 int main() {
+
+#if 0
+
   BitBoards::init();
   Position::init();
 
@@ -421,6 +428,147 @@ int main() {
   //}
 
   //delete states;
+
+#endif
+
+  BitBoards::init();
+  Position::init();
+
+
+  // SELF GAME
+
+  auto states = new std::deque<StateInfo>(1);
+
+  std::string default_fen =
+      "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
+  Position p;
+  p.set(default_fen, &states->back());
+
+  auto moves = new std::vector<Move>();
+
+  bool mate_or_draw = false;
+  Value score = VALUE_INFINITE;
+
+  std::cout << pretty(p) << std::endl;
+
+  // srand(time(NULL));
+  // Color ENGINE = Color(rand() & 1);
+  Color ENGINE1 = WHITE;
+  Color ENGINE2 = BLACK;
+
+  TranspositionTable* tt1 = new TranspositionTable;
+  tt1->init();
+  tt1->clear();
+
+  TranspositionTable* tt2 = new TranspositionTable;
+  tt2->init();
+  tt2->clear();
+
+  bool engine1_turn = true;
+
+  ThreadPool tp1(tt1, 4);
+  ThreadPool tp2(tt2, 4);
+
+  while (!mate_or_draw) {
+
+    if (engine1_turn) {
+      engine1_turn = false;
+
+      StatesDequePtr s1(new std::deque<StateInfo>(1));
+      Position p1;
+      p1.set(default_fen, &s1->back());
+
+      for (auto m : *moves) {
+        s1->emplace_back();
+        p1.make_move(m, &s1->back(), p1.gives_check(m));
+      }
+
+
+      auto start = std::chrono::high_resolution_clock::now();
+      tp1.start(p1, s1);
+      auto end = std::chrono::high_resolution_clock::now();
+      auto duration =
+          std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+      
+
+      Move m = tp1.main_thread()->worker->get_best_move();
+      moves->push_back(m);
+      states->emplace_back();
+      p.make_move(m, &states->back(), p.gives_check(m));
+
+      std::cout << std::endl;
+      std::cout << pretty(p) << std::endl;
+      std::cout << "Best move: " << moveToString(m) << std::endl;
+      std::cout << "Nodes: " << tp1.main_thread()->worker->get_nodes() << std::endl;
+      std::cout << std::endl;
+      std::cout << std::endl;
+      std::cout << "Search execution time: " << (double)duration.count() / 1000
+                << " seconds" << std::endl
+                << std::endl;
+
+      if ((score == VALUE_DRAW &&
+           (p.is_draw() || MoveList<LEGAL>(p).size() == 0)) ||
+          (score == (VALUE_MATE - 1)))
+        mate_or_draw = true;
+
+    } else {
+     
+      engine1_turn = true;
+
+      StatesDequePtr s2(new std::deque<StateInfo>(1));
+      Position p2;
+      p2.set(default_fen, &s2->back());
+
+      for (auto m : *moves) {
+        s2->emplace_back();
+        p2.make_move(m, &s2->back(), p2.gives_check(m));
+      }
+
+
+      auto start = std::chrono::high_resolution_clock::now();
+      tp1.start(p2, s2);
+      auto end = std::chrono::high_resolution_clock::now();
+      auto duration =
+          std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+      
+
+      Move m = tp2.main_thread()->worker->get_best_move();
+      moves->push_back(m);
+      states->emplace_back();
+      p.make_move(m, &states->back(), p.gives_check(m));
+
+      std::cout << std::endl;
+      std::cout << pretty(p) << std::endl;
+      std::cout << "Best move: " << moveToString(m) << std::endl;
+      std::cout << "Nodes: " << tp2.main_thread()->worker->get_nodes() << std::endl;
+      std::cout << std::endl;
+      std::cout << std::endl;
+      std::cout << "Search execution time: " << (double)duration.count() / 1000
+                << " seconds" << std::endl
+                << std::endl;
+
+      if ((score == VALUE_DRAW &&
+           (p.is_draw() || MoveList<LEGAL>(p).size() == 0)) ||
+          (score == (VALUE_MATE - 1)))
+        mate_or_draw = true;
+    }
+  }
+
+  std::cout << std::endl;
+  if (score == VALUE_DRAW) {
+    std::cout << "DRAW" << std::endl;
+  } else if (score == (VALUE_MATE - 1) || score == -(VALUE_MATE)) {
+    std::cout << "CHECKMATE!!!" << std::endl;
+  } else {
+    std::cerr << "Error: Neither checkmate or draw." << std::endl;
+  }
+
+  delete tt1;
+  delete tt2;
+
+
+  // SELF GAME
 
   return 0;
 }

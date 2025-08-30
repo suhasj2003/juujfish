@@ -66,13 +66,13 @@ void Thread::loop() {
 
 // Function implementations for ThreadPool class
 
-ThreadPool::ThreadPool(int num_threads, TranspositionTable* tt) {
+ThreadPool::ThreadPool(TranspositionTable* tt, int num_threads) {
   threads.resize(num_threads);
 
   for (int thread_id = 0; thread_id < num_threads; ++thread_id)
-    threads[thread_id] = std::make_unique<Thread>(thread_id);
+    threads[thread_id] = std::make_unique<Thread>(*this, thread_id);
 
-    _tt = tt;
+  _tt = tt;
 }
 
 ThreadPool::~ThreadPool() {
@@ -94,7 +94,7 @@ void ThreadPool::set(int num_threads) {
   threads.resize(num_threads);
 
   for (int thread_id = 0; thread_id < num_threads; ++thread_id)
-    threads[thread_id] = std::make_unique<Thread>(thread_id);
+    threads[thread_id] = std::make_unique<Thread>(*this, thread_id);
 }
 
 void ThreadPool::wait_for_all_threads() {
@@ -103,8 +103,27 @@ void ThreadPool::wait_for_all_threads() {
       thread->wait_for_search_finish();
 }
 
-void ThreadPool::start(Position& rootPos, StatesDequePtr& initialStates) {
+void ThreadPool::start(Position& root_pos, StatesDequePtr& initial_states) {
+  main_thread()->wait_for_search_finish();
+
+  RootMoves root_moves;
+  for (const auto& m : MoveList<LEGAL>(root_pos))
+    root_moves.emplace_back(m);
+
+  states = std::move(initial_states);
   
+  for (auto&& thread : threads) {
+    thread->worker->tt = _tt;
+    thread->worker->root_moves = root_moves;
+    thread->worker->root_depth = 0;
+    thread->worker->root_pos.set(root_pos.fen(), &thread->worker->root_state);
+    thread->worker->root_state = states->back();
+  }
+
+  for (auto&& thread : threads)
+    thread->wait_for_search_finish();
+
+  main_thread()->start_searching();
 }
 
 void ThreadPool::start_searching() {

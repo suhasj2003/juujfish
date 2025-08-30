@@ -30,6 +30,7 @@ class Thread {
   void wait_for_search_finish();
 
   std::unique_ptr<Search::Worker> worker;
+
  private:
   int _thread_id, _num_threads;
   bool running = true, searching = false;
@@ -44,13 +45,13 @@ class Thread {
 
 class ThreadPool {
  public:
-  ThreadPool(int num_threads = DEFAULT_NUM_THREADS, TranspositionTable* tt);
+  ThreadPool(TranspositionTable* tt, int num_threads = DEFAULT_NUM_THREADS);
   ~ThreadPool();
 
   void clear();
   void set(int num_threads);
 
-  void start(Position& rootPos, StatesDequePtr& initialStates);
+  void start(Position& root_pos, StatesDequePtr& initial_states);
   void start_searching();
 
   void wait_for_all_threads();
@@ -61,7 +62,7 @@ class ThreadPool {
 
  private:
   std::vector<std::unique_ptr<Thread>> threads;
-  
+
   StatesDequePtr states;
   TranspositionTable* _tt;
 };

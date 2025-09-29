@@ -10,7 +10,7 @@
                 "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
                 "CMAKE_CXX_COMPILER": "clang++",
-                "CMAKE_CXX_FLAGS_DEBUG": "-Wall -Wextra -O3 -ffast-math -march=native -flto -funroll-loops -fno-exceptions -fno-rtti -g -D__OSX__"
+                "CMAKE_CXX_FLAGS_DEBUG": "-Wall -Wextra -O3 -ffast-math -march=native -flto -funroll-loops -fno-exceptions -fno-rtti -g -D__OSX__ -fsanitize=address"
             }
         },
         {
@@ -33,7 +33,7 @@
                 "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
                 "CMAKE_CXX_COMPILER": "clang++",
-                "CMAKE_CXX_FLAGS_DEBUG": "-Wall -Wextra -O3 -ffast-math -march=native -flto -funroll-loops -fno-exceptions -fno-rtti -g"
+                "CMAKE_CXX_FLAGS_DEBUG": "-Wall -Wextra -O3 -ffast-math -march=native -fno-omit-frame-pointer -flto -funroll-loops -fno-exceptions -fno-rtti -g"
             }
         },
         {

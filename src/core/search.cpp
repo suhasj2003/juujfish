@@ -126,8 +126,21 @@ template Value Search::Worker::search<false>(Position& pos, Value alpha,
 
 #else
 
+Search::Worker::Worker(ThreadPool& tp, size_t thread_id)
+    : thread_pool(tp), _thread_id(thread_id) {
+
+  nodes = 0;
+
+  killer.init();
+  history.init();
+  butterfly.init();
+}
+
 void Search::Worker::clear() {
   nodes = 0;
+  root_depth = 0;
+  root_moves.clear();
+  memset(pv, 0, sizeof(pv));
 
   killer.clear();
   history.clear();
@@ -144,6 +157,8 @@ void Search::Worker::start_searching() {
     return;
   }
 
+
+
   tt->new_search();
   thread_pool.start_searching();
 
@@ -159,7 +174,18 @@ void Search::Worker::start_searching() {
       In the future, we want to consider the deepest, minimum score when comparing moves in root_moves.
     */
 
-  get_best_move();  // Temporary, eventually return this to GUI
+  // get_best_move();  // Temporary, eventually return this to GUI
+
+  // for (auto& rm : root_moves)
+  //   std::cout << moveToString(rm.move) << ": " << (int) rm.score << std::endl;
+
+  // for (int i = 0; i < root_depth; i++) {
+  //   std::cout << moveToString(pv[i]) << " ";
+  // }
+  // std::cout << std::endl;
+    
+
+  // std::cout << "Best move: " << moveToString(get_best_move()) << std::endl;
 }
 
 void Search::Worker::iterative_deepening() {
@@ -174,7 +200,8 @@ void Search::Worker::iterative_deepening() {
 
   while (++root_depth < MAX_PLY && !thread_pool.stop) {
 
-    if (is_mainthread() && root_depth > 14) // Arbitrary depth limit for main thread
+    if (is_mainthread() &&
+        root_depth > 8)  // Arbitrary depth limit for main thread
       thread_pool.stop = true;
 
     delta = 5 + root_moves[0].mean_score_squared / 10000;
@@ -186,10 +213,9 @@ void Search::Worker::iterative_deepening() {
     copy_pv(prev_pv, pv);
 
     while (true) {
+      nodes = 0;
       score = Search::Worker::search<RootNode>(root_pos, alpha, beta,
                                                root_depth, false);
-      if (thread_pool.stop)
-        break;
 
       if (score <= alpha)
         alpha = std::max(alpha - delta, -VALUE_INFINITE);
@@ -220,17 +246,20 @@ void Search::Worker::iterative_deepening() {
 
       std::sort(root_moves.begin(), root_moves.end(), std::greater<RootMove>());
 
-      assert(root_moves[0].move == pv[0]);
-
       root_moves[0].score = score;
 
       root_moves[0].mean_score_squared =
           (root_moves[0].mean_score_squared * (root_depth - 1) +
            score * score) /
           root_depth;
+
+      // std::cout << "best move at depth " << (int) root_depth << ": "
+      //           << moveToString(root_moves[0].move) << " score: " << (int) score
+      //           << " nodes: " << nodes.load() << std::endl;
     }
   }
 }
+
 
 template <NodeType Nt>
 Value Search::Worker::search(Position& pos, Value alpha, Value beta,
@@ -243,6 +272,7 @@ Value Search::Worker::search(Position& pos, Value alpha, Value beta,
   Value best_score = -VALUE_INFINITE;
   Value score = 0;
 
+  Move tt_move;
   Move best_move = Move::null_move();
 
   Color us = pos.get_side_to_move();
@@ -257,7 +287,11 @@ Value Search::Worker::search(Position& pos, Value alpha, Value beta,
   auto [table_hit, table_data, table_writer] =
       tt->probe(pos.get_key(), pos.generate_secondary_key());
 
-  if (!root_node && table_hit && table_data.depth >= depth && (table_data.score >= beta)) {
+  if (!root_node && table_hit && table_data.depth >= depth &&
+      (table_data.score >= beta) &&
+      (!table_data.move.is_nullmove())) {
+
+    tt_move = table_data.move;
 
     if (pos.get_fifty_move_counter() < 90)
       return table_data.score;
@@ -265,10 +299,11 @@ Value Search::Worker::search(Position& pos, Value alpha, Value beta,
 
   // STEP 4: Evaluate if depth == 0
   if (depth == 0)
-    return std::abs(evaluate(pos));
+    return us == WHITE ? evaluate(pos) : -evaluate(pos);
+
 
   // Start Moves Loop
-  MoveOrderer mo(pos, table_hit ? table_data.move : Move::null_move(),
+  MoveOrderer mo(pos, table_hit ? tt_move : Move::null_move(),
                  root_depth - depth, &killer, &history, &butterfly);
 
   Move curr_move;
@@ -278,6 +313,12 @@ Value Search::Worker::search(Position& pos, Value alpha, Value beta,
 
   int move_count = 0;
   while (!(curr_move = mo.next()).is_nullmove()) {
+    /* 
+      Cannot 100% trust the transposition table move to be uncorrupted or not a collision.
+      So we must verify that it is at least pseudo-legal before trying it first. 
+    */
+    if (curr_move == tt_move && !pos.pseudo_legal(curr_move))
+      continue;
 
     if (!pos.legal(curr_move))
       continue;
@@ -287,7 +328,7 @@ Value Search::Worker::search(Position& pos, Value alpha, Value beta,
     move_count++;
 
     // STEP 6: Null Window Search
-    if (!root_node && (!pv_node || move_count > 1)) {
+    if (!pv_node || move_count > 1) {
       score = -search<NonPV>(pos, -(alpha + 1), -alpha, depth - 1, !cut_node);
     }
 
@@ -306,14 +347,14 @@ Value Search::Worker::search(Position& pos, Value alpha, Value beta,
 
     if (root_node) {
 
-      RootMove& rm =
-          *std::find(root_moves.begin(), root_moves.end(), curr_move);
-
-      rm.score = score;
-
-      rm.mean_score_squared =
-          (rm.mean_score_squared * (root_depth - 1) + score * score) /
-          root_depth;
+      auto it = std::find(root_moves.begin(), root_moves.end(), curr_move);
+      if (it != root_moves.end()) {
+        RootMove& rm = *it;
+        rm.score = score;
+        rm.mean_score_squared =
+            (rm.mean_score_squared * (root_depth - 1) + score * score) /
+            root_depth;
+      }
     }
 
     if (score > best_score) {
@@ -342,7 +383,7 @@ Value Search::Worker::search(Position& pos, Value alpha, Value beta,
   }
 
   // STEP 10: Store in Transposition Table
-  if (!root_node) {
+  if (!root_node && !best_move.is_nullmove()) {
     table_writer.write(pos.get_key(), pos.generate_secondary_key(), depth,
                        best_score <= alpha
                            ? BOUND_UPPER
@@ -351,7 +392,7 @@ Value Search::Worker::search(Position& pos, Value alpha, Value beta,
   }
 
   // STEP 11: Update PV
-  if (!best_move.is_nullmove() && pv_node && best_score >= alpha)  {
+  if (!best_move.is_nullmove() && pv_node && best_score >= alpha) {
     pv[ply] = best_move;
   }
 

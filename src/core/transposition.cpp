@@ -53,15 +53,17 @@ std::tuple<bool, TableData, TableWriter> TranspositionTable::probe(
     return std::make_tuple(false, TableData(entry),
                            TableWriter(entry, this->table_age));
   } else {
-
+    
     // Replacement:
     entry = &bucket->entries[0];
     TableEntry* replacement_entry = &bucket->entries[0];
 
     int replacement_score = entry->get_depth() - relative_age(entry->get_age());
+    int new_age = this->table_age+1;
 
     for (size_t i = 1; i < BUCKET_SIZE; ++i) {
       entry = &bucket->entries[i];
+      new_age = std::max(new_age, entry->get_age()+1);
       if (entry->is_occupied() &&
           replacement_score >
               (entry->get_depth() - relative_age(entry->get_age()))) {
@@ -73,7 +75,7 @@ std::tuple<bool, TableData, TableWriter> TranspositionTable::probe(
     }
 
     return std::make_tuple(false, TableData(replacement_entry),
-                           TableWriter(replacement_entry, this->table_age));
+                           TableWriter(replacement_entry, new_age));
   }
 }
 

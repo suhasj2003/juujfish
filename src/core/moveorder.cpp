@@ -17,6 +17,8 @@ void partial_insertion_sort(GradedMove* begin, GradedMove* end, int threshold) {
 }
 
 inline int mvv_lva(const PieceType victim, const PieceType attacker) {
+  assert(victim >= PAWN && attacker >= PAWN);
+  assert(victim <= KING && attacker <= KING);
   return PieceValue[victim] - PieceValue[attacker];
 }
 
@@ -63,9 +65,10 @@ void MoveOrderer::score() {
       if (mt == ENPASSANT) {
         m.value = mvv_lva(PAWN, PAWN);
       } else if (mt == PROMOTION) {
-        m.value = mvv_lva(promo_type, PAWN) + capture_piece != NO_PIECE
-                      ? PieceValue[type_of(capture_piece)]
-                      : 0;
+        assert(capture_piece == NO_PIECE || (capture_piece_type >= PAWN && capture_piece_type <= KING));
+        m.value = mvv_lva(promo_type, PAWN) + (capture_piece != NO_PIECE
+                      ? PieceValue[capture_piece_type]
+                      : 0);
       } else if (mt == CASTLING) {
         std::cerr << "Error: Castling move in capture list." << std::endl;
         m.value = 0;
@@ -95,6 +98,13 @@ void MoveOrderer::score() {
       m.value = value;
 
     } else if constexpr (Gt == EVASIONS) {
+      if (pos.is_capture(m)) {
+        if (type_of(pos.piece_at(to)) > KING)
+          std::cout << "Error: Invalid piece on square. " << type_of(pos.piece_at(to)) << std::endl;
+        assert(type_of(pos.piece_at(to)) >= PAWN);
+        assert(type_of(pos.piece_at(to)) <= KING);
+      }
+        
       if (pos.is_capture(m))
         m.value = PieceValue[type_of(pos.piece_at(to))] + (1 << 20);
       else

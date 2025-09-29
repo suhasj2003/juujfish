@@ -72,12 +72,8 @@ struct RootMove {
   explicit RootMove(Move m) : move(m), score(-VALUE_INFINITE) {}
 
   inline bool operator==(const Move& m) const { return move == m; }
-  inline bool operator<(const RootMove& m) const {
-    return score < m.score;
-  }
-  inline bool operator>(const RootMove& m) const {
-    return score > m.score;
-  }
+  inline bool operator<(const RootMove& m) const { return score < m.score; }
+  inline bool operator>(const RootMove& m) const { return score > m.score; }
 
   Move move;
 
@@ -92,8 +88,7 @@ namespace Search {
 
 class Worker {
  public:
-  Worker(ThreadPool& tp, size_t thread_id)
-      : thread_pool(tp), _thread_id(thread_id) {}
+  Worker(ThreadPool& tp, size_t thread_id);
   Worker(Worker& w) = delete;
 
   void clear();

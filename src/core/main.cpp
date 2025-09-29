@@ -1,6 +1,7 @@
 #include <chrono>
 #include <deque>
 #include <iostream>
+#include <unistd.h>
 
 #include "bitboard.h"
 #include "evaluation.h"
@@ -434,41 +435,29 @@ int main() {
   BitBoards::init();
   Position::init();
 
+#if 1
 
   // SELF GAME
-
-  auto states = new std::deque<StateInfo>(1);
-
   std::string default_fen =
       "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-
-  Position p;
-  p.set(default_fen, &states->back());
 
   auto moves = new std::vector<Move>();
 
   bool mate_or_draw = false;
   Value score = VALUE_INFINITE;
 
-  std::cout << pretty(p) << std::endl;
-
   // srand(time(NULL));
   // Color ENGINE = Color(rand() & 1);
   Color ENGINE1 = WHITE;
   Color ENGINE2 = BLACK;
 
-  TranspositionTable* tt1 = new TranspositionTable;
-  tt1->init();
-  tt1->clear();
-
-  TranspositionTable* tt2 = new TranspositionTable;
-  tt2->init();
-  tt2->clear();
+  TranspositionTable* tt = new TranspositionTable;
+  tt->init();
+  tt->clear();
 
   bool engine1_turn = true;
 
-  ThreadPool tp1(tt1, 4);
-  ThreadPool tp2(tt2, 4);
+  ThreadPool tp(tt, 1);
 
   while (!mate_or_draw) {
 
@@ -486,31 +475,42 @@ int main() {
 
 
       auto start = std::chrono::high_resolution_clock::now();
-      tp1.start(p1, s1);
+      tp.start(p1, s1);
+      while (!tp.stop) usleep(50);
+      usleep(10);
       auto end = std::chrono::high_resolution_clock::now();
       auto duration =
           std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-      
 
-      Move m = tp1.main_thread()->worker->get_best_move();
+
+      s1 = StatesDequePtr(new std::deque<StateInfo>(1));
+      p1.set(default_fen, &s1->back());
+
+      for (auto m : *moves) {
+        s1->emplace_back();
+        p1.make_move(m, &s1->back(), p1.gives_check(m));
+      }
+
+      Move m = tp.main_thread()->worker->get_best_move();
       moves->push_back(m);
-      states->emplace_back();
-      p.make_move(m, &states->back(), p.gives_check(m));
+      s1->emplace_back();
+      p1.make_move(m, &s1->back(), p1.gives_check(m));
+
+
 
       std::cout << std::endl;
-      std::cout << pretty(p) << std::endl;
+      std::cout << pretty(p1) << std::endl;
       std::cout << "Best move: " << moveToString(m) << std::endl;
-      std::cout << "Nodes: " << tp1.main_thread()->worker->get_nodes() << std::endl;
-      std::cout << std::endl;
-      std::cout << std::endl;
       std::cout << "Search execution time: " << (double)duration.count() / 1000
                 << " seconds" << std::endl
                 << std::endl;
 
       if ((score == VALUE_DRAW &&
-           (p.is_draw() || MoveList<LEGAL>(p).size() == 0)) ||
+           (p1.is_draw() || MoveList<LEGAL>(p1).size() == 0)) ||
           (score == (VALUE_MATE - 1)))
         mate_or_draw = true;
+
+      tp.clear();
 
     } else {
      
@@ -525,33 +525,40 @@ int main() {
         p2.make_move(m, &s2->back(), p2.gives_check(m));
       }
 
-
       auto start = std::chrono::high_resolution_clock::now();
-      tp1.start(p2, s2);
+      tp.start(p2, s2);
+      while (!tp.stop) usleep(50);
+      usleep(10);
       auto end = std::chrono::high_resolution_clock::now();
       auto duration =
           std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-      
 
-      Move m = tp2.main_thread()->worker->get_best_move();
+      s2 = StatesDequePtr(new std::deque<StateInfo>(1));
+      p2.set(default_fen, &s2->back());
+
+      for (auto m : *moves) {
+        s2->emplace_back();
+        p2.make_move(m, &s2->back(), p2.gives_check(m));
+      }
+
+      Move m = tp.main_thread()->worker->get_best_move();
       moves->push_back(m);
-      states->emplace_back();
-      p.make_move(m, &states->back(), p.gives_check(m));
+      s2->emplace_back();
+      p2.make_move(m, &s2->back(), p2.gives_check(m));
 
       std::cout << std::endl;
-      std::cout << pretty(p) << std::endl;
+      std::cout << pretty(p2) << std::endl;
       std::cout << "Best move: " << moveToString(m) << std::endl;
-      std::cout << "Nodes: " << tp2.main_thread()->worker->get_nodes() << std::endl;
-      std::cout << std::endl;
-      std::cout << std::endl;
       std::cout << "Search execution time: " << (double)duration.count() / 1000
                 << " seconds" << std::endl
                 << std::endl;
 
       if ((score == VALUE_DRAW &&
-           (p.is_draw() || MoveList<LEGAL>(p).size() == 0)) ||
+           (p2.is_draw() || MoveList<LEGAL>(p2).size() == 0)) ||
           (score == (VALUE_MATE - 1)))
         mate_or_draw = true;
+
+      tp.clear();
     }
   }
 
@@ -564,11 +571,28 @@ int main() {
     std::cerr << "Error: Neither checkmate or draw." << std::endl;
   }
 
-  delete tt1;
-  delete tt2;
+  delete tt;
 
+#else
 
-  // SELF GAME
+std::string default_fen =
+      "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
+  StateInfo st;
+  Position p;
+  p.set(default_fen, &st);
+
+  std::cout << std::endl;
+
+  std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
+  uint64_t n = perft(p, 7, 7, nullptr);
+  std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+
+  std::cout << std::endl << "Total End Positions " << n << std::endl;
+  std::cout << "Runtime: " << (double)duration.count() / 1000 << " seconds" << std::endl;
+
+  #endif
 
   return 0;
 }

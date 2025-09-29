@@ -33,12 +33,12 @@ class Thread {
 
  private:
   int _thread_id, _num_threads;
-  bool running = true, searching = false;
-  std::function<void()> job_func;
+  bool running = true, searching = true;
+  std::function<void()> job_func = nullptr;
 
-  SysThread sys_thread;
   std::condition_variable cv;
   std::mutex mtx;
+  SysThread sys_thread;
 
   void loop();
 };

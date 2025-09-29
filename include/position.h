@@ -96,8 +96,8 @@ class Position {
   bool is_occupied(Square s) const;
   bool is_occupied(Square s, Color c) const;
 
-  BitBoard pieces(PieceType pt = PIECE_TYPE_NB) const;
-  BitBoard pieces(Color c, PieceType pt = PIECE_TYPE_NB) const;
+  BitBoard pieces(PieceType pt = NO_PIECE_TYPE) const;
+  BitBoard pieces(Color c, PieceType pt = NO_PIECE_TYPE) const;
 
   Piece piece_at(Square s) const;
 
@@ -191,14 +191,14 @@ inline bool Position::is_occupied(Square s, Color c) const {
 }
 
 inline BitBoard Position::pieces(PieceType pt) const {
-  if (pt == PIECE_TYPE_NB) {
+  if (pt == NO_PIECE_TYPE) {
     return boardBB;
   }
   return pieceBB[WHITE][pt] | pieceBB[BLACK][pt];
 }
 
 inline BitBoard Position::pieces(Color c, PieceType pt) const {
-  if (pt == PIECE_TYPE_NB) {
+  if (pt == NO_PIECE_TYPE) {
     return colorBB[c];
   }
   return pieceBB[c][pt];

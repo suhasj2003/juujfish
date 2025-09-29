@@ -39,7 +39,7 @@ echo "Building the executable..."
 # Run the engine if not in compile-only mode
 if $RUN_ENGINE; then
     echo "Running the engine..."
-    ./chessengine.out
+    ./chessengine
 else
-    echo "Build completed. You can run the engine with ./chessengine.out."
+    echo "Build completed. You can run the engine with ./chessengine."
 fi

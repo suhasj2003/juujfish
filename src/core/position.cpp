@@ -232,6 +232,18 @@ bool Position::legal(Move m) const {
 
   Square king_sq = lsb(pieces(us, KING));
 
+  // if (p == NO_PIECE) {
+  //   std::cout << moveToString(m) << "\n" << pretty(*this) << std::endl;
+  //   std::cout << get_plies_from_start() << std::endl;
+
+  //   StateInfo* curr = st;
+  //   while (curr != nullptr) {
+  //     std::cout << moveToString(curr->previous_move) << ": " << curr->plies_from_start << ", ";
+  //     curr = curr->prev;
+  //   }
+  //   std::cout << std::endl;
+  // }
+
   assert(p != NO_PIECE);
 
   if (mt == CASTLING) {
@@ -254,6 +266,13 @@ bool Position::legal(Move m) const {
     return !sq_is_attacked(us, to, pieces() ^ from);
 
   return !(get_blockers(us) & from) || ((get_ray(king_sq, from) & to) != 0);
+}
+
+bool Position::pseudo_legal(Move m) const {
+  if (m.is_nullmove())
+    return false;
+  return is_in_check() ? MoveList<EVASIONS>(*this).contains(m) :
+                        MoveList<NON_EVASIONS>(*this).contains(m);
 }
 
 bool Position::gives_check(Move m) const {
@@ -306,10 +325,6 @@ bool Position::gives_check(Move m) const {
       return false;
   }
 }
-
-/* This is for testing if Transposition Table move is valid or if it is a collision with another
-       position. */
-// bool Position::pseudo_legal(Move m) const {}
 
 bool Position::is_capture(Move m) const {
   Square to = m.to_sq();

@@ -138,7 +138,7 @@ inline std::string pretty(BitBoard b) {
   return s;
 }
 
-inline std::string pretty(Position& p) {
+inline std::string pretty(const Position& p) {
 
   std::string s = "+---+---+---+---+---+---+---+---+\n";
 

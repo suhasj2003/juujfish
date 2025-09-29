@@ -14,7 +14,7 @@ struct TableWriter;
 
 constexpr size_t CACHE_LINE = 128;
 constexpr size_t BUCKET_SIZE = 8;
-constexpr size_t HASH_SIZE = 29;
+constexpr size_t HASH_SIZE = 28;
 
 // 128 mb, must be a multiple of CACHE_LINE
 constexpr size_t TABLE_MEM_SIZE = 1 << HASH_SIZE;
